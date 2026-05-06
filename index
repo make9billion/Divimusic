@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Xeon AI Mixer Pro</title>
+    <style>
+        :root { --neon: #00ff88; --bg: #0d0f11; --panel: #16191d; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 800px; }
+        
+        /* 업로드 섹션 */
+        #upload-view { background: var(--panel); padding: 40px; border-radius: 25px; text-align: center; border: 1px solid #2d333b; transition: 0.3s; }
+        .upload-zone { border: 2px dashed #3e454f; border-radius: 15px; padding: 50px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; position: relative; }
+        .upload-zone.dragover { border-color: var(--neon); background: rgba(0,255,136,0.05); transform: scale(1.02); }
+        .upload-zone p { margin: 10px 0 0; color: #888; }
+        #file-name-tag { display: none; margin-top: 15px; color: var(--neon); font-weight: bold; background: rgba(0,255,136,0.1); padding: 8px; border-radius: 5px; }
+
+        /* 버튼 스타일 */
+        .btn-run { background: var(--neon); color: #000; width: 100%; padding: 18px; border: none; border-radius: 12px; font-size: 18px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .btn-run:disabled { background: #333; color: #777; cursor: not-allowed; }
+        
+        /* 믹서 섹션 */
+        #mixer-view { display: none; background: var(--panel); padding: 30px; border-radius: 25px; }
+        .track-strip { display: flex; align-items: center; background: #23272e; margin: 10px 0; padding: 15px 20px; border-radius: 12px; gap: 15px; }
+        .track-label { width: 80px; font-weight: bold; color: var(--neon); }
+        .vol-slider { flex-grow: 1; accent-color: var(--neon); cursor: pointer; }
+
+        /* 하단 고정 바 */
+        .master-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #000; padding: 20px; display: none; justify-content: center; align-items: center; gap: 20px; border-top: 2px solid var(--neon); z-index: 1000; }
+        .play-btn { background: var(--neon); color: #000; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 20px; cursor: pointer; font-weight: bold; }
+        
+        #progress-overlay { display: none; margin-top: 20px; }
+        .timer { font-size: 40px; color: var(--neon); font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 1. 업로드 화면 -->
+    <div id="upload-view">
+        <h1>AI Audio Studio</h1>
+        <div class="upload-zone" id="drop-zone">
+            <div style="font-size: 50px;">☁️</div>
+            <p id="drop-text">음악 파일을 이리로 끌어다 놓으세요</p>
+            <div id="file-name-tag"></div>
+            <input type="file" id="file-input" hidden accept="audio/*">
+        </div>
+        <button id="start-btn" class="btn-run" onclick="uploadAndStart()" disabled>음원 분리 시작</button>
+        
+        <div id="progress-overlay">
+            <div class="timer" id="timer">00:00</div>
+            <p>Xeon 서버에서 인공지능이 분리 중입니다...</p>
+        </div>
+    </div>
+
+    <!-- 2. 믹서 화면 -->
+    <div id="mixer-view">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2>Mixing Console</h2>
+            <button onclick="location.reload()" style="background:none; color:#888; border:1px solid #444; padding:5px 10px; border-radius:5px; cursor:pointer;">새로고침</button>
+        </div>
+        <div id="track-list"></div>
+    </div>
+</div>
+
+<!-- 3. 마스터 컨트롤 바 -->
+<div id="master-bar" class="master-bar">
+    <button id="master-play" class="play-btn" onclick="togglePlay()">▶</button>
+    <div id="time-display" style="font-family:monospace;">00:00 / 00:00</div>
+    <input type="range" id="seek-bar" style="width:200px; accent-color:var(--neon);" value="0" min="0" step="0.1" oninput="seek(this.value)">
+</div>
+
+<script>
+    const SERVER_IP = "192.168.0.38"; // 실제 서버 IP로 확인 필수!
+    const BASE_URL = `http://${SERVER_IP}:8000`;
+    let tracks = {}; 
+    let isPlaying = false;
+    let duration = 0;
+    let selectedFile = null;
+
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const startBtn = document.getElementById('start-btn');
+    const fileNameTag = document.getElementById('file-name-tag');
+
+    // --- 드래그 앤 드롭 핸들러 ---
+    dropZone.onclick = () => fileInput.click();
+    
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        handleFileSelect(e.dataTransfer.files[0]);
+    };
+
+    fileInput.onchange = (e) => handleFileSelect(e.target.files[0]);
+
+    function handleFileSelect(file) {
+        if (file && file.type.startsWith('audio/')) {
+            selectedFile = file;
+            fileNameTag.innerText = `📄 선택됨: ${file.name}`;
+            fileNameTag.style.display = 'block';
+            document.getElementById('drop-text').style.display = 'none';
+            startBtn.disabled = false;
+        } else {
+            alert("오디오 파일만 올려줘!");
+        }
+    }
+
+    // --- 업로드 및 서버 통신 ---
+    async function uploadAndStart() {
+        if(!selectedFile) return;
+
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("selected_stems", "vocals,drums,bass,guitar,piano,other");
+
+        startBtn.style.display = 'none';
+        document.getElementById('progress-overlay').style.display = 'block';
+        
+        let seconds = 0;
+        const timerInterval = setInterval(() => {
+            seconds++;
+            document.getElementById('timer').innerText = new Date(seconds * 1000).toISOString().substr(14, 5);
+        }, 1000);
+
+        try {
+            const res = await fetch(`${BASE_URL}/separate`, { method: 'POST', body: formData });
+            const data = await res.json();
+            
+            const poller = setInterval(async () => {
+                const sRes = await fetch(`${BASE_URL}/status/${data.task_id}`);
+                const sData = await sRes.json();
+                
+                if(sData.status === "completed") {
+                    clearInterval(poller);
+                    clearInterval(timerInterval);
+                    initMixer(sData.files);
+                }
+            }, 5000);
+        } catch(e) {
+            alert("서버 연결 실패! IP 주소와 서버 실행 여부를 확인해줘.");
+        }
+    }
+
+    // --- 믹서 초기화 및 재생 ---
+    function initMixer(files) {
+        document.getElementById('upload-view').style.display = 'none';
+        document.getElementById('mixer-view').style.display = 'block';
+        document.getElementById('master-bar').style.display = 'flex';
+        
+        const list = document.getElementById('track-list');
+        const labels = {vocals: "🎤 보컬", drums: "🥁 드럼", bass: "🎸 베이스", guitar: "🎸 기타", piano: "🎹 피아노", other: "✨ 기타"};
+
+        Object.entries(files).forEach(([key, url]) => {
+            const audio = new Audio(`${BASE_URL}${url}`);
+            audio.crossOrigin = "anonymous";
+            tracks[key] = audio;
+
+            const div = document.createElement('div');
+            div.className = 'track-strip';
+            div.innerHTML = `
+                <span class="track-label">${labels[key]}</span>
+                <input type="range" class="vol-slider" min="0" max="1" step="0.01" value="0.7" 
+                    oninput="tracks['${key}'].volume = this.value">
+            `;
+            list.appendChild(div);
+
+            // 시간 및 진행바 기준 설정 (보컬 기준)
+            if(key === 'vocals') {
+                audio.onloadedmetadata = () => {
+                    duration = audio.duration;
+                    document.getElementById('seek-bar').max = duration;
+                };
+                audio.ontimeupdate = () => {
+                    const cur = audio.currentTime;
+                    document.getElementById('time-display').innerText = `${fmt(cur)} / ${fmt(duration)}`;
+                    document.getElementById('seek-bar').value = cur;
+                };
+            }
+        });
+    }
+
+    function togglePlay() {
+        isPlaying = !isPlaying;
+        document.getElementById('master-play').innerText = isPlaying ? "⏸" : "▶";
+        Object.values(tracks).forEach(a => isPlaying ? a.play() : a.pause());
+    }
+
+    function seek(val) {
+        Object.values(tracks).forEach(a => a.currentTime = val);
+    }
+
+    function fmt(s) {
+        return new Date(s * 1000).toISOString().substr(14, 5);
+    }
+</script>
+</body>
+</html>
