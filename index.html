@@ -869,7 +869,8 @@
 </div>
 
 <script>
-    const API_BASE_URL = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+    const IS_STATIC_FRONTEND = window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io');
+    const API_BASE_URL = IS_STATIC_FRONTEND ? 'http://127.0.0.1:8000' : '';
     const stemMeta = {
         no_vocals: { label: 'Instrumental', color: '#b58cff', icon: 'fa-music', order: 1 },
         vocals: { label: 'Vocals', color: '#8fd450', icon: 'fa-microphone', order: 0 },
