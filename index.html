@@ -446,35 +446,69 @@
         .lyrics-dock-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px; border-bottom: 1px solid rgba(45,51,61,0.65); }
         .lyrics-dock-title { font-weight: 900; font-size: 0.9rem; }
         .lyrics-dock-actions { display: flex; gap: 8px; }
-        .lyrics-dock-body { padding: 14px 18px; overflow-y: auto; color: var(--text); line-height: 1.7; white-space: pre-wrap; scroll-behavior: smooth; }
+        .lyrics-dock-body {
+            padding: 20px 24px;
+            overflow-y: hidden;
+            color: var(--text);
+            line-height: 1.45;
+            white-space: normal;
+            scroll-behavior: smooth;
+            display: grid;
+            align-content: center;
+            gap: 4px;
+        }
+
+        .lyrics-dock-body.full-view {
+            overflow-y: auto;
+            align-content: start;
+            padding-top: 16px;
+        }
+
         .karaoke-line {
-            padding: 8px 12px;
+            padding: 6px 12px;
             margin: 2px 0;
             border-radius: 8px;
             color: var(--dim);
-            display: grid;
-            grid-template-columns: 70px 1fr;
-            gap: 12px;
-            align-items: baseline;
-            transition: background 0.18s, color 0.18s, transform 0.18s;
+            display: none;
+            justify-content: center;
+            text-align: center;
+            align-items: center;
+            min-height: 44px;
+            transition: background 0.18s, color 0.18s, transform 0.18s, opacity 0.18s;
         }
 
         .karaoke-line.active {
-            background: rgba(143, 212, 80, 0.14);
+            display: flex;
+            background: transparent;
             color: var(--text);
-            transform: translateX(4px);
+            transform: none;
+        }
+
+        .karaoke-line.up-next {
+            display: flex;
+            opacity: 0.52;
+        }
+
+        .lyrics-dock-body.full-view .karaoke-line {
+            display: flex;
+            opacity: 1;
+            justify-content: center;
         }
 
         .karaoke-line.active .karaoke-text { color: rgba(242, 245, 247, 0.36); font-weight: 900; }
-        .karaoke-time { color: var(--muted); font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .karaoke-line.up-next .karaoke-text { color: rgba(242, 245, 247, 0.48); }
+        .karaoke-time { display: none; }
         .karaoke-text {
             position: relative;
             display: flex;
             flex-wrap: wrap;
             column-gap: 0.35em;
             row-gap: 0.1em;
+            justify-content: center;
             max-width: 100%;
             color: rgba(242, 245, 247, 0.34);
+            font-size: 1.45rem;
+            font-weight: 900;
             overflow-wrap: anywhere;
         }
 
@@ -806,7 +840,7 @@
                         <div class="lyrics-dock-title">LYRICS</div>
                         <div class="lyrics-dock-actions">
                             <button class="icon-btn" onclick="extractLyrics()" title="가사 추출"><i class="fas fa-wand-magic-sparkles"></i></button>
-                            <button class="icon-btn" onclick="copyLyrics()" title="복사"><i class="fas fa-copy"></i></button>
+                            <button class="icon-btn" id="lyrics-view-btn" onclick="toggleLyricsFullView()" title="전체보기"><i class="fas fa-align-left"></i></button>
                         </div>
                     </div>
                     <div class="lyrics-dock-body" id="lyrics-body">보컬 트랙에서 가사를 추출할 수 있습니다.</div>
@@ -917,6 +951,7 @@
     const historyPanel = document.getElementById('history-panel');
     const historyList = document.getElementById('history-list');
     const lyricsBody = document.getElementById('lyrics-body');
+    const lyricsViewBtn = document.getElementById('lyrics-view-btn');
     const sidebarLibrary = document.getElementById('sidebar-library');
     const libraryRootDropzone = document.getElementById('library-root-dropzone');
     const deleteModal = document.getElementById('delete-modal');
@@ -941,6 +976,7 @@
     let currentLyricsText = '';
     let currentLyricsSegments = [];
     let activeLyricsIndex = -1;
+    let lyricsFullView = false;
     let currentMode = 'vocals';
     let pendingDeleteJobId = null;
     let pendingDeleteJobName = '';
@@ -1475,6 +1511,7 @@
     function renderLyrics(lyrics) {
         if (!lyrics?.text) {
             lyricsBody.innerText = '보컬 트랙에서 가사를 추출할 수 있습니다.';
+            lyricsBody.classList.remove('full-view');
             currentLyricsSegments = [];
             activeLyricsIndex = -1;
             return;
@@ -1484,13 +1521,17 @@
         const segments = lyrics.segments || [];
         if (segments.length === 0) {
             lyricsBody.innerText = lyrics.text;
+            lyricsBody.classList.add('full-view');
             currentLyricsSegments = [];
             activeLyricsIndex = -1;
             return;
         }
 
         currentLyricsSegments = segments;
-        activeLyricsIndex = -1;
+        activeLyricsIndex = -2;
+        lyricsFullView = false;
+        updateLyricsViewButton();
+        lyricsBody.classList.remove('full-view');
         lyricsBody.innerHTML = segments.map((segment, index) => `
             <div class="karaoke-line" data-lyric-index="${index}">
                 <div class="karaoke-time">${formatTime(segment.start)}</div>
@@ -1524,18 +1565,43 @@
         });
 
         if (index !== activeLyricsIndex) {
-            const previous = lyricsBody.querySelector('.karaoke-line.active');
-            previous?.classList.remove('active');
+            lyricsBody.querySelectorAll('.karaoke-line.active, .karaoke-line.up-next').forEach((line) => {
+                line.classList.remove('active', 'up-next');
+            });
             activeLyricsIndex = index;
 
             if (index >= 0) {
                 const current = lyricsBody.querySelector(`[data-lyric-index="${index}"]`);
                 current?.classList.add('active');
-                current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const next = lyricsBody.querySelector(`[data-lyric-index="${index + 1}"]`);
+                next?.classList.add('up-next');
+                if (lyricsFullView) current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                const first = lyricsBody.querySelector('[data-lyric-index="0"]');
+                first?.classList.add('up-next');
             }
         }
 
         updateKaraokeFill(position);
+    }
+
+    function toggleLyricsFullView() {
+        if (!currentLyricsText) {
+            lyricsBody.innerText = '전체보기 할 가사가 아직 없습니다.';
+            return;
+        }
+        lyricsFullView = !lyricsFullView;
+        lyricsBody.classList.toggle('full-view', lyricsFullView);
+        updateLyricsViewButton();
+        activeLyricsIndex = -2;
+        updateKaraokeHighlight(getCurrentPosition());
+    }
+
+    function updateLyricsViewButton() {
+        if (!lyricsViewBtn) return;
+        lyricsViewBtn.title = lyricsFullView ? '노래방 보기' : '전체보기';
+        const icon = lyricsViewBtn.querySelector('i');
+        if (icon) icon.className = lyricsFullView ? 'fas fa-music' : 'fas fa-align-left';
     }
 
     function updateKaraokeFill(position) {
