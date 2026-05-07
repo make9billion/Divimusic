@@ -3,201 +3,2039 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xeon AI Audio Studio</title>
-    <!-- 구글 폰트 및 아이콘 -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>DiviMusic Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-dark: #0e0e10;
-            --sidebar-bg: #18181b;
-            --accent-purple: #6d28d9;
-            --text-main: #efeff1;
-            --text-dim: #adadb8;
-            --border-color: #2f2f35;
+            --bg: #090a0d;
+            --panel: #15171d;
+            --panel-soft: #1d2028;
+            --panel-strong: #242934;
+            --track: #67d8e8;
+            --track-ink: #1f7580;
+            --accent: #8fd450;
+            --accent-2: #57c7ff;
+            --text: #f2f5f7;
+            --dim: #9ba3ad;
+            --muted: #5f6873;
+            --line: #2d333d;
+            --danger: #f36c7f;
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 70px;
         }
 
+        * { box-sizing: border-box; }
+
         body, html {
-            margin: 0; padding: 0; height: 100%;
-            font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Inter, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             overflow: hidden;
         }
 
+        button, input { font: inherit; }
+        button { border: 0; }
+
         .app-container { display: flex; height: 100vh; }
 
-        /* --- 좌측 레이아웃 (사이드바) --- */
         .sidebar {
-            width: 260px; background-color: var(--sidebar-bg);
-            border-right: 1px solid var(--border-color);
-            display: flex; flex-direction: column; transition: 0.3s;
+            width: var(--sidebar-width);
+            background: #111319;
+            border-right: 1px solid var(--line);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 20;
         }
 
-        .sidebar-header { padding: 20px; font-weight: 800; font-size: 1.2rem; display: flex; justify-content: space-between; }
+        .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        .sidebar-header { height: 64px; padding: 0 14px 0 18px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 0; }
+        .logo-group { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .logo-box {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
 
-        .menu-section { padding: 10px 0; }
-        .section-title { font-size: 0.75rem; color: var(--text-dim); padding: 0 20px 10px; text-transform: uppercase; letter-spacing: 1px; }
-
+        .sidebar.collapsed .logo-box { border-color: var(--accent); color: var(--accent); }
+        .logo-text { font-weight: 800; font-size: 1.05rem; white-space: nowrap; overflow: hidden; transition: width 0.22s, opacity 0.18s; }
+        .sidebar.collapsed .logo-text { width: 0; opacity: 0; }
+        .toggle-btn { width: 34px; height: 34px; cursor: pointer; color: var(--dim); padding: 0; background: transparent; display: grid; place-items: center; border-radius: 8px; flex-shrink: 0; }
+        .toggle-btn:hover { background: #1c2028; color: var(--text); }
+        .toggle-glyph { width: 16px; height: 13px; border: 1.5px solid currentColor; border-radius: 2px; position: relative; display: block; }
+        .toggle-glyph::before { content: ""; position: absolute; top: 0; bottom: 0; left: 5px; width: 1.5px; background: currentColor; opacity: 0.9; }
+        .sidebar.collapsed .toggle-btn { display: none; }
+        .menu-scroll-area { flex: 1; overflow-y: auto; }
+        .menu-section { padding: 5px 0; }
+        .section-divider { border-top: 1px solid var(--line); margin: 7px 18px; }
+        .sidebar.collapsed .section-divider { margin: 10px 15px; }
+        .section-title { height: 18px; font-size: 0.68rem; color: var(--dim); padding: 0 22px 7px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; overflow: hidden; transition: opacity 0.18s; }
+        .sidebar.collapsed .section-title { opacity: 0; }
         .menu-item {
-            padding: 12px 20px; display: flex; align-items: center; cursor: pointer;
-            color: var(--text-dim); transition: 0.2s; font-size: 0.9rem;
-        }
-        .menu-item i { width: 25px; margin-right: 10px; }
-        .menu-item:hover, .menu-item.active { background-color: #26262c; color: var(--text-main); }
-        .menu-item.active { border-left: 3px solid var(--accent-purple); color: var(--accent-purple); }
-
-        /* 트랙 보관함 */
-        .library-section { flex-grow: 1; border-top: 1px solid var(--border-color); padding-top: 15px; overflow-y: auto; }
-        .folder-item { padding: 8px 20px; font-size: 0.85rem; color: var(--text-dim); display: flex; align-items: center; cursor: pointer; }
-        .folder-item:hover { color: white; }
-        .track-list-item { padding: 5px 35px; font-size: 0.8rem; color: #888; cursor: move; }
-
-        /* --- 우측 레이아웃 (메인 콘텐츠) --- */
-        .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
-
-        /* Moises 스타일 업로드 뷰 (image_c9f029.png 참고) */
-        .upload-view {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100%; text-align: center; padding: 20px;
+            width: 100%;
+            height: 36px;
+            min-height: 36px;
+            max-height: 36px;
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            color: var(--dim);
+            transition: 0.2s;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            background: transparent;
+            border-left: 3px solid transparent;
+            text-align: left;
+            line-height: 1;
         }
 
-        .hero-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
-        .hero-subtitle { color: var(--text-dim); font-size: 1.1rem; margin-bottom: 40px; }
+        .menu-item i { width: 24px; height: 24px; display: grid; place-items: center; text-align: center; flex: 0 0 24px; font-size: 1rem; line-height: 24px; }
+        .menu-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; transition: width 0.18s, opacity 0.16s; }
+        .sidebar.collapsed .menu-item { justify-content: flex-start; padding: 0 0 0 20px; gap: 0; }
+        .sidebar.collapsed .menu-item span { opacity: 0; width: 0; pointer-events: none; }
+        .menu-item:hover, .menu-item.active { background: #1c2028; color: var(--text); }
+        .menu-item.active { border-left-color: var(--accent); color: var(--accent); }
+        .sidebar-footer { padding: 15px 20px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 30px; height: 30px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 
-        .ai-illustration {
-            width: 300px; height: 180px; background: linear-gradient(135deg, #22c55e, #3b82f6);
-            border-radius: 20px; margin-bottom: 50px; position: relative;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            display: flex; align-items: center; justify-content: center; font-size: 3rem;
+        .library-section-title { height: 25px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 0 14px 7px 22px; overflow: hidden; }
+        .library-section-title .section-title { height: 18px; padding: 0; }
+        .add-folder-btn { width: 26px; height: 26px; border-radius: 7px; background: transparent; color: var(--dim); cursor: pointer; display: grid; place-items: center; flex-shrink: 0; }
+        .add-folder-btn:hover { background: #1c2028; color: var(--accent); }
+        .sidebar.collapsed .library-section-title { justify-content: center; padding: 0 0 7px; }
+        .sidebar.collapsed .library-section-title .section-title { opacity: 0; width: 0; }
+        .sidebar.collapsed .add-folder-btn { display: none; }
+        .library-list { display: grid; gap: 4px; padding: 0 8px; }
+        .library-item {
+            width: 100%;
+            height: 38px;
+            min-height: 38px;
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr) 28px;
+            align-items: center;
+            gap: 8px;
+            padding: 0 6px;
+            background: transparent;
+            color: var(--dim);
+            border: 0;
+            border-radius: 7px;
+            cursor: pointer;
+            text-align: left;
         }
 
-        .select-file-btn {
-            background-color: var(--accent-purple); color: white;
-            padding: 15px 40px; border-radius: 30px; font-weight: 600;
-            border: none; cursor: pointer; font-size: 1rem; transition: 0.3s;
-            box-shadow: 0 4px 15px rgba(109, 40, 217, 0.4);
+        .library-item:hover { background: #1c2028; color: var(--text); }
+        .library-item.dragging { opacity: 0.48; }
+        .library-cover { width: 28px; height: 28px; border-radius: 6px; overflow: hidden; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; color: #071008; flex-shrink: 0; }
+        .library-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .library-copy { min-width: 0; }
+        .library-title { display: block; font-size: 0.78rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .library-meta { display: none; }
+        .library-delete { width: 26px; height: 26px; border-radius: 7px; background: transparent; color: var(--muted); opacity: 0; cursor: pointer; display: grid; place-items: center; }
+        .library-item:hover .library-delete, .history-item:hover .library-delete { opacity: 1; }
+        .library-delete:hover { color: var(--danger); background: rgba(243,108,127,0.12); }
+        .library-folder { display: grid; gap: 2px; }
+        .library-folder .library-item { grid-template-columns: 28px minmax(0, 1fr) 28px; }
+        .library-folder:not(.collapsed-folder) > .library-item { background: rgba(143,212,80,0.1); color: var(--accent); }
+        .library-folder.collapsed-folder > .library-item .library-cover { background: #252b34; color: var(--dim); }
+        .library-folder-children { display: grid; gap: 2px; margin-left: 18px; padding-left: 8px; border-left: 1px solid rgba(45,51,61,0.75); }
+        .library-folder.collapsed-folder .library-folder-children { display: none; }
+        .library-folder .library-folder-children .library-item { grid-template-columns: 28px minmax(0, 1fr) 28px; }
+        .folder-drop-target, .library-root-dropzone.root-drop-target { outline: 1px solid var(--accent); background: rgba(143,212,80,0.09); }
+        .library-root-dropzone {
+            height: 28px;
+            border-radius: 7px;
+            margin: 2px 8px 0;
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            font-size: 0.68rem;
         }
-        .select-file-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .library-root-dropzone span { opacity: 0; }
+        .library-root-dropzone.root-drop-target span { opacity: 1; }
+        .sidebar.collapsed .library-root-dropzone { display: none; }
+        .sidebar.collapsed .library-list { padding: 0; place-items: center; }
+        .sidebar.collapsed .library-folder { display: contents; }
+        .sidebar.collapsed .library-folder .library-item, .sidebar.collapsed .library-item { width: 42px; grid-template-columns: 28px; justify-content: center; padding: 0; }
+        .sidebar.collapsed .library-folder-children { display: none; }
+        .sidebar.collapsed .library-copy { display: none; }
+        .sidebar.collapsed .library-delete { display: none; }
+
+        .main-content {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(143, 212, 80, 0.05), transparent 220px),
+                var(--bg);
+        }
 
         .drop-zone {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(109, 40, 217, 0.05); border: 2px dashed var(--accent-purple);
-            display: none; align-items: center; justify-content: center; z-index: 10;
+            position: absolute;
+            inset: 0;
+            background: rgba(143, 212, 80, 0.13);
+            border: 2px dashed var(--accent);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            backdrop-filter: blur(4px);
         }
 
-        /* 하단 유저 프로필 */
-        .sidebar-footer {
-            padding: 20px; border-top: 1px solid var(--border-color);
-            display: flex; align-items: center; gap: 10px; font-size: 0.85rem;
+        .upload-view, .processing-view {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
         }
-        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #555; }
+
+        .processing-view { display: none; max-width: 520px; margin: 0 auto; }
+        .progress-container { width: 100%; height: 8px; background: #232832; border-radius: 10px; margin: 30px 0; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.3s; }
+
+        .player-preview { width: 100%; max-width: 620px; background: #101217; border-radius: 8px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 25px 60px rgba(0,0,0,0.5); }
+        .track-row { display: flex; align-items: center; height: 60px; border-bottom: 1px solid #202631; }
+        .track-info { width: 90px; padding-left: 25px; font-size: 0.9rem; text-align: left; }
+        .waveform-area { flex: 1; height: 100%; opacity: 0.85; }
+        .track-music { background: #5ec7e2; }
+        .track-vocal { background: #8fd450; }
+        .track-bass  { background: #f0c35a; }
+        .track-drums { background: #ff7b7b; }
+
+        .file-card { background: var(--panel-soft); border-radius: 8px; padding: 18px 25px; width: 360px; display: none; align-items: center; gap: 15px; margin: 0 auto 30px; border: 1px solid var(--line); }
+        .file-icon { width: 40px; height: 40px; background: var(--accent); color: #071008; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .select-file-btn { background: transparent; color: white; border: 1.5px solid #4a5260; padding: 14px 45px; border-radius: 999px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .select-file-btn:hover { background: white; color: black; }
+        .select-file-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .studio-view {
+            display: none;
+            height: 100%;
+            grid-template-rows: 78px minmax(0, 1fr) 106px;
+            min-width: 0;
+        }
+
+        .studio-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 14px 18px 12px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(9, 10, 13, 0.92);
+        }
+
+        .song-head { display: flex; align-items: center; gap: 14px; min-width: 0; }
+        .icon-btn, .pill-btn {
+            height: 38px;
+            min-width: 38px;
+            border-radius: 8px;
+            background: var(--panel-soft);
+            color: var(--text);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .icon-btn:hover, .pill-btn:hover { border-color: #4a5260; background: var(--panel-strong); }
+        .pill-btn { padding: 0 14px; font-weight: 800; }
+        .cover {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(143,212,80,0.95), rgba(87,199,255,0.95)),
+                repeating-linear-gradient(90deg, transparent 0 8px, rgba(0,0,0,0.18) 8px 11px);
+            display: grid;
+            place-items: center;
+            color: #071008;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .song-copy { min-width: 0; }
+        .song-title { margin: 0; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .song-subtitle { color: var(--dim); font-size: 0.78rem; margin-top: 3px; }
+        .top-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+        .meter-pill { color: var(--dim); }
+        .download-menu, .control-menu { position: relative; }
+        .download-popover, .control-popover {
+            position: absolute;
+            right: 0;
+            top: 46px;
+            width: 240px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            display: none;
+            z-index: 50;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+        }
+
+        .download-menu.open .download-popover { display: block; }
+        .control-menu.open .control-popover { display: block; }
+        .download-popover a, .control-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; color: var(--text); text-decoration: none; border-radius: 6px; font-size: 0.86rem; width: 100%; background: transparent; cursor: pointer; }
+        .download-popover a:hover, .control-option:hover { background: var(--panel-soft); }
+        .control-popover { width: 260px; padding: 14px; text-align: center; }
+        .popover-title { font-weight: 900; font-size: 0.82rem; margin-bottom: 14px; }
+        .stepper { display: grid; grid-template-columns: 60px 1fr 60px; gap: 8px; align-items: center; }
+        .stepper button { height: 54px; border-radius: 8px; background: var(--panel-soft); color: var(--text); font-size: 1.4rem; cursor: pointer; }
+        .stepper-value { height: 54px; border-radius: 8px; background: var(--panel-soft); display: grid; place-items: center; font-size: 1.4rem; font-weight: 900; }
+        .popover-reset { margin-top: 12px; color: var(--muted); background: transparent; cursor: pointer; font-weight: 800; }
+
+        .studio-body {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: min-content minmax(150px, 1fr);
+            min-height: 0;
+        }
+
+        .track-controls {
+            border-right: 1px solid var(--line);
+            background: #0c0e12;
+            overflow-y: auto;
+            padding: 68px 14px 24px;
+            display: grid;
+            align-content: start;
+            gap: 8px;
+        }
+
+        .track-control-row {
+            height: 80px;
+            display: grid;
+            grid-template-columns: 1fr;
+            align-content: center;
+            gap: 9px;
+            border-bottom: 1px solid rgba(45,51,61,0.6);
+        }
+
+        .track-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .track-name { display: flex; align-items: center; gap: 9px; min-width: 0; font-weight: 800; font-size: 0.9rem; }
+        .track-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--track-color); flex-shrink: 0; }
+        .track-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .track-toggles { display: flex; gap: 5px; flex-shrink: 0; }
+        .tiny-btn {
+            width: 27px;
+            height: 24px;
+            border-radius: 6px;
+            background: #282d35;
+            color: var(--dim);
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .tiny-btn.active.mute { color: #12090b; background: var(--danger); }
+        .tiny-btn.active.solo { color: #061007; background: var(--accent); }
+        .volume-row { display: grid; grid-template-columns: 18px 1fr 38px; align-items: center; gap: 8px; color: var(--dim); font-size: 0.72rem; }
+        .volume-row input { width: 100%; accent-color: var(--track-color); }
+        .volume-value { text-align: right; font-variant-numeric: tabular-nums; }
+
+        .timeline {
+            min-width: 0;
+            overflow: auto;
+            padding: 18px 18px 16px;
+            position: relative;
+        }
+
+        .ruler {
+            height: 34px;
+            position: sticky;
+            top: 0;
+            z-index: 4;
+            background:
+                linear-gradient(90deg, rgba(255,255,255,0.34) 1px, transparent 1px) 0 0 / 64px 24px,
+                linear-gradient(90deg, rgba(255,255,255,0.14) 1px, transparent 1px) 0 18px / 16px 10px,
+                linear-gradient(180deg, rgba(143,212,80,0.08), rgba(87,199,255,0.02)),
+                var(--bg);
+            border-bottom: 1px solid var(--line);
+            box-shadow: inset 0 -1px 0 rgba(255,255,255,0.06);
+        }
+
+        .ruler::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), transparent 70%);
+            opacity: 0.75;
+        }
+
+        .playhead {
+            position: absolute;
+            top: 18px;
+            height: var(--playhead-height, 360px);
+            left: 18px;
+            width: 2px;
+            background: white;
+            z-index: 5;
+            pointer-events: none;
+            box-shadow: 0 0 14px rgba(255,255,255,0.4);
+        }
+
+        .playhead::before {
+            content: "";
+            position: absolute;
+            left: -6px;
+            top: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-top: 10px solid white;
+        }
+
+        .wave-stack { display: grid; gap: 8px; padding-top: 16px; min-width: 760px; }
+        .wave-track {
+            height: 80px;
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--track-color), #ffffff 18%);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .wave-track canvas { width: 100%; height: 100%; display: block; opacity: 0.9; }
+        .wave-track.muted { opacity: 0.38; }
+        .wave-loading {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            color: #123039;
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .lyrics-dock {
+            grid-column: 1 / -1;
+            border-top: 1px solid var(--line);
+            background: #0b0d11;
+            min-height: 150px;
+            max-height: 230px;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: 42px 1fr;
+        }
+
+        .lyrics-dock-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px; border-bottom: 1px solid rgba(45,51,61,0.65); }
+        .lyrics-dock-title { font-weight: 900; font-size: 0.9rem; }
+        .lyrics-dock-actions { display: flex; gap: 8px; }
+        .lyrics-dock-body { padding: 14px 18px; overflow-y: auto; color: var(--text); line-height: 1.7; white-space: pre-wrap; scroll-behavior: smooth; }
+        .karaoke-line {
+            padding: 8px 12px;
+            margin: 2px 0;
+            border-radius: 8px;
+            color: var(--dim);
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 12px;
+            align-items: baseline;
+            transition: background 0.18s, color 0.18s, transform 0.18s;
+        }
+
+        .karaoke-line.active {
+            background: rgba(143, 212, 80, 0.14);
+            color: var(--text);
+            transform: translateX(4px);
+        }
+
+        .karaoke-line.active .karaoke-text { color: rgba(242, 245, 247, 0.36); font-weight: 900; }
+        .karaoke-time { color: var(--muted); font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .karaoke-text {
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            column-gap: 0.35em;
+            row-gap: 0.1em;
+            max-width: 100%;
+            color: rgba(242, 245, 247, 0.34);
+            overflow-wrap: anywhere;
+        }
+
+        .karaoke-word,
+        .karaoke-text[data-text] {
+            --fill: 0%;
+            position: relative;
+            display: inline-block;
+            color: rgba(242, 245, 247, 0.34);
+        }
+
+        .karaoke-word::before,
+        .karaoke-text[data-text]::before {
+            content: attr(data-word);
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: var(--fill);
+            max-width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            color: #ffffff;
+            text-shadow: 0 0 18px rgba(143, 212, 80, 0.22);
+            pointer-events: none;
+        }
+
+        .karaoke-text[data-text] {
+            display: inline-block;
+        }
+
+        .karaoke-text[data-text]::before {
+            content: attr(data-text);
+            white-space: pre-wrap;
+        }
+
+        .karaoke-word.active::before {
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2), 0 0 24px rgba(143, 212, 80, 0.24);
+        }
+
+        .studio-footer {
+            position: relative;
+            z-index: 8;
+            display: grid;
+            grid-template-columns: 1fr minmax(380px, 620px) 1fr;
+            align-items: center;
+            gap: 18px;
+            padding: 14px 18px 22px;
+            border-top: 1px solid var(--line);
+            background: #0b0c10;
+        }
+
+        .transport {
+            grid-column: 2;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .transport-buttons { display: flex; justify-content: center; align-items: center; gap: 8px; grid-column: 1 / -1; }
+        .play-btn { width: 46px; height: 46px; border-radius: 50%; background: var(--text); color: #050608; font-size: 1rem; cursor: pointer; }
+        .scrubber { width: 100%; accent-color: var(--accent); }
+        .time-code { color: var(--dim); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+
+        .error-text { color: var(--danger); max-width: 560px; line-height: 1.6; }
+        .empty-result { padding: 28px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+
+        .lyrics-panel {
+            position: absolute;
+            right: 18px;
+            bottom: 106px;
+            width: min(420px, calc(100% - 36px));
+            max-height: min(520px, calc(100% - 220px));
+            display: none;
+            flex-direction: column;
+            background: #101319;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            z-index: 40;
+            box-shadow: 0 20px 70px rgba(0,0,0,0.45);
+            overflow: hidden;
+        }
+
+        .lyrics-panel.open { display: flex; }
+        .lyrics-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px; border-bottom: 1px solid var(--line); }
+        .lyrics-head h3 { margin: 0; font-size: 1rem; }
+        .lyrics-actions { display: flex; gap: 8px; }
+        .lyrics-body { padding: 16px; overflow-y: auto; color: var(--text); line-height: 1.75; white-space: pre-wrap; }
+        .lyrics-segment { padding: 10px 0; border-bottom: 1px solid rgba(45,51,61,0.6); }
+        .lyrics-time { color: var(--accent); font-size: 0.72rem; font-weight: 800; margin-bottom: 3px; }
+
+        .history-panel {
+            position: absolute;
+            inset: 0;
+            z-index: 60;
+            display: none;
+            align-items: stretch;
+            justify-content: flex-end;
+            background: rgba(0,0,0,0.42);
+            backdrop-filter: blur(3px);
+        }
+
+        .history-panel.open { display: flex; }
+        .history-card {
+            width: min(420px, 100%);
+            height: 100%;
+            background: #101319;
+            border-left: 1px solid var(--line);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -20px 0 60px rgba(0,0,0,0.38);
+        }
+
+        .history-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+        .history-head h2 { margin: 0; font-size: 1.4rem; }
+        .history-head p { margin: 6px 0 0; color: var(--dim); font-size: 0.86rem; }
+        .history-list { display: grid; gap: 10px; }
+        .history-item {
+            display: grid;
+            grid-template-columns: 44px 1fr auto;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .history-item:hover { background: var(--panel-soft); }
+        .history-thumb { width: 44px; height: 44px; border-radius: 7px; overflow: hidden; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; color: #071008; }
+        .history-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .history-title { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .history-meta { color: var(--dim); font-size: 0.78rem; margin-top: 4px; }
+
+        .confirm-modal {
+            position: absolute;
+            inset: 0;
+            z-index: 80;
+            display: none;
+            place-items: center;
+            background: rgba(0,0,0,0.58);
+            backdrop-filter: blur(3px);
+        }
+
+        .confirm-modal.open { display: grid; }
+        .confirm-card {
+            width: min(420px, calc(100% - 32px));
+            background: #11141a;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.52);
+        }
+
+        .confirm-card h3 { margin: 0 0 8px; font-size: 1.1rem; }
+        .confirm-card p { margin: 0; color: var(--dim); line-height: 1.55; }
+        .modal-input { width: 100%; height: 42px; margin-top: 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 0 12px; outline: none; }
+        .modal-input:focus { border-color: var(--accent); }
+        .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .danger-btn { height: 38px; padding: 0 14px; border-radius: 8px; background: var(--danger); color: #17090c; font-weight: 800; cursor: pointer; }
+        .folder-save-btn { background: var(--accent); color: #071008; }
+
+        @media (max-width: 900px) {
+            .sidebar { width: var(--sidebar-collapsed-width); }
+            .sidebar .logo-text, .sidebar-footer .user-info { display: none; }
+            .sidebar .section-title { opacity: 0; }
+            .sidebar .toggle-btn { display: none; }
+            .sidebar .menu-item { justify-content: center; padding: 0; gap: 0; }
+            .sidebar .menu-item span { opacity: 0; width: 0; pointer-events: none; }
+            .sidebar .library-list { padding: 0; place-items: center; }
+            .sidebar .library-section-title .section-title { opacity: 0; width: 0; }
+            .sidebar .add-folder-btn { display: none; }
+            .sidebar .library-folder { display: contents; }
+            .sidebar .library-folder .library-item, .sidebar .library-item { width: 42px; grid-template-columns: 28px; justify-content: center; padding: 0; }
+            .sidebar .library-folder-children { display: none; }
+            .sidebar .library-copy { display: none; }
+            .studio-topbar { align-items: flex-start; flex-direction: column; }
+            .top-actions { width: 100%; overflow-x: auto; }
+            .studio-body { grid-template-columns: 190px 1fr; }
+            .studio-footer { grid-template-columns: 1fr; }
+            .transport { grid-column: 1; grid-template-columns: auto 1fr auto; }
+        }
+
+        @media (max-width: 640px) {
+            body, html { overflow: auto; }
+            .app-container { min-height: 100vh; }
+            .main-content { overflow: visible; }
+            .studio-view { min-height: 100vh; height: auto; grid-template-rows: auto auto auto; }
+            .studio-body { grid-template-columns: 1fr; }
+            .track-controls { border-right: 0; border-bottom: 1px solid var(--line); }
+            .track-control-row { height: auto; padding: 12px 0; }
+            .timeline { min-height: 420px; }
+            .lyrics-dock { grid-column: 1; }
+            .file-card { width: min(360px, calc(100vw - 120px)); }
+        }
     </style>
 </head>
 <body>
-
 <div class="app-container">
-    <!-- 좌측 레이아웃 -->
-    <div class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <span>Xeon Studio</span>
-            <i class="fas fa-bars" style="cursor:pointer;" onclick="toggleSidebar()"></i>
+            <div class="logo-group">
+                <div class="logo-box" onclick="expandSidebar()">D</div>
+                <span class="logo-text">DiviMusic</span>
+            </div>
+            <button class="toggle-btn" onclick="toggleSidebar()" title="사이드바 접기"><span class="toggle-glyph"></span></button>
         </div>
 
-        <div class="menu-section">
-            <div class="section-title">트랙 분리</div>
-            <div class="menu-item active" onclick="showView('vocal')"><i class="fas fa-microphone-lines"></i> 보컬 제거</div>
-            <div class="menu-item" onclick="showView('4stems')"><i class="fas fa-drum"></i> 4개 섹션 분리</div>
-            <div class="menu-item" onclick="showView('6stems')"><i class="fas fa-guitar"></i> 6개 섹션 분리</div>
-        </div>
-
-        <div class="menu-section">
-            <div class="section-title">기타 기능</div>
-            <div class="menu-item"><i class="fas fa-file-lines"></i> 가사 추출</div>
-            <div class="menu-item"><i class="fas fa-circle-dot"></i> 녹음하기</div>
-        </div>
-
-        <div class="library-section">
-            <div class="section-title">트랙 보관함 <i class="fas fa-plus-circle" style="float:right; cursor:pointer;" onclick="addFolder()"></i></div>
-            <div id="folder-list">
-                <div class="folder-item"><i class="fas fa-folder"></i> &nbsp; 내 리스트</div>
-                <div class="track-list-item" draggable="true">다시노래해 - 보컬.wav</div>
-                <div class="track-list-item" draggable="true">다시노래해 - 드럼.wav</div>
-                <div class="folder-item"><i class="fas fa-folder"></i> &nbsp; 가족 프로젝트</div>
+        <div class="menu-scroll-area">
+            <div class="menu-section">
+                <div class="section-title">트랙 분리</div>
+                <button class="menu-item active" data-mode="vocals" onclick="selectSeparationMode('vocals', true)"><i class="fas fa-microphone"></i> <span>보컬 분리</span></button>
+                <button class="menu-item" data-mode="4stems" onclick="selectSeparationMode('4stems', true)"><i class="fas fa-layer-group"></i> <span>4트랙 분리</span></button>
+                <button class="menu-item" data-mode="6stems" onclick="selectSeparationMode('6stems', true)"><i class="fas fa-wave-square"></i> <span>6트랙 분리</span></button>
+            </div>
+            <div class="section-divider"></div>
+            <div class="menu-section">
+                <button class="menu-item" onclick="openLyricsFromMenu()"><i class="fas fa-file-audio"></i> <span>가사 추출</span></button>
+                <button class="menu-item" onclick="showComingSoon('녹음')"><i class="fas fa-microphone-lines"></i> <span>녹음</span></button>
+            </div>
+            <div class="section-divider"></div>
+            <div class="menu-section">
+                <div class="library-section-title">
+                    <div class="section-title">라이브러리</div>
+                    <button class="add-folder-btn" onclick="openFolderModal()" title="폴더 추가"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="library-list" id="sidebar-library">
+                    <button class="library-item" onclick="openHistory()" draggable="true">
+                        <span class="library-cover"><i class="fas fa-archive"></i></span>
+                        <span class="library-copy"><span class="library-title">보관함 열기</span></span>
+                        <span></span>
+                    </button>
+                </div>
+                <div class="library-root-dropzone" id="library-root-dropzone"><span>여기에 놓으면 폴더 밖으로 이동</span></div>
             </div>
         </div>
 
         <div class="sidebar-footer">
             <div class="user-avatar"></div>
-            <div>
-                <div style="font-weight:600">User_Xeon</div>
-                <div style="font-size:0.7rem; color:var(--text-dim)">Free Plan</div>
+            <div class="user-info"><div style="font-weight:700; font-size: 0.85rem;">YOODH</div></div>
+        </div>
+    </aside>
+
+    <main class="main-content" id="main-area">
+        <div class="drop-zone" id="drop-zone"><h2><i class="fas fa-cloud-upload-alt"></i> 파일을 놓으세요</h2></div>
+
+        <section class="upload-view" id="upload-view">
+            <p style="font-size: 0.75rem; color: var(--accent); font-weight: 800; letter-spacing: 2px; margin-bottom: 10px;">AI STEM STUDIO</p>
+            <h1 style="font-size: 2.8rem; margin: 0 0 10px; font-weight: 800;">노래에서 악기 분리</h1>
+            <p style="color: var(--dim); margin-bottom: 45px; font-size: 1.15rem;">RTX GPU로 오디오를 분리하고 바로 믹스해보세요.</p>
+
+            <div class="player-preview" id="player-preview">
+                <div class="track-row"><div class="track-info">음악</div><div class="waveform-area track-music"></div></div>
+                <div class="track-row"><div class="track-info">보컬</div><div class="waveform-area track-vocal"></div></div>
+                <div class="track-row"><div class="track-info">베이스</div><div class="waveform-area track-bass"></div></div>
+                <div class="track-row" style="border:none"><div class="track-info">드럼</div><div class="waveform-area track-drums"></div></div>
             </div>
-        </div>
-    </div>
 
-    <!-- 우측 레이아웃 -->
-    <div class="main-content" id="main-content">
-        <!-- 업로드 뷰 -->
-        <div class="upload-view" id="upload-view">
-            <div class="hero-title">보컬 리무버 및 격리</div>
-            <div class="hero-subtitle">강력한 AI 알고리즘으로 노래에서 음악과 음성을 분리하세요.</div>
-            
-            <div class="ai-illustration">
-                <i class="fas fa-wave-square"></i>
+            <div class="file-card" id="file-preview-card">
+                <div class="file-icon"><i class="fas fa-file-audio"></i></div>
+                <div style="text-align: left; min-width: 0;">
+                    <div id="file-name" style="font-weight: 700; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+                    <div id="file-size" style="font-size: 0.75rem; color: var(--dim);"></div>
+                </div>
             </div>
 
-            <button class="select-file-btn" onclick="document.getElementById('file-input').click()">파일 선택</button>
-            <input type="file" id="file-input" hidden>
-            <p style="margin-top:20px; font-size:0.8rem; color:var(--text-dim)">또는 파일을 여기로 드래그하세요</p>
-        </div>
+            <button class="select-file-btn" id="action-btn" onclick="document.getElementById('file-input').click()">파일 선택</button>
+            <input type="file" id="file-input" hidden accept="audio/*">
+        </section>
 
-        <!-- 드래그 오버 존 -->
-        <div class="drop-zone" id="drop-zone">
-            <h2>파일을 놓아서 업로드</h2>
-        </div>
-    </div>
+        <section class="processing-view" id="processing-view">
+            <h2 id="status-text" style="font-size: 1.8rem; font-weight: 800;">작업을 준비 중입니다...</h2>
+            <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
+            <div id="progress-percent" style="font-size: 0.9rem; color: var(--accent); font-weight: 700;">0%</div>
+        </section>
+
+        <section class="studio-view" id="studio-view">
+            <nav class="studio-topbar">
+                <div class="song-head">
+                    <button class="icon-btn" onclick="resetStudio()" title="새 파일"><i class="fas fa-arrow-left"></i></button>
+                    <div class="cover" id="album-cover"><i class="fas fa-music"></i></div>
+                    <div class="song-copy">
+                        <h2 class="song-title" id="studio-title">분리된 프로젝트</h2>
+                        <div class="song-subtitle" id="studio-subtitle">Stem mix ready</div>
+                    </div>
+                </div>
+                <div class="top-actions">
+                    <div class="control-menu" id="speed-menu">
+                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('speed-menu')"><i class="fas fa-gauge-high"></i> <span id="speed-label">1x</span></button>
+                        <div class="control-popover">
+                            <div class="popover-title">SPEED</div>
+                            <div class="stepper">
+                                <button onclick="changeSpeed(-0.25)">−</button>
+                                <div class="stepper-value" id="speed-value">1x</div>
+                                <button onclick="changeSpeed(0.25)">+</button>
+                            </div>
+                            <button class="popover-reset" onclick="setSpeed(1)">RESET</button>
+                        </div>
+                    </div>
+                    <div class="control-menu" id="pitch-menu">
+                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('pitch-menu')"><i class="fas fa-sliders"></i> <span id="pitch-label">0 st</span></button>
+                        <div class="control-popover">
+                            <div class="popover-title">PITCH</div>
+                            <div class="stepper">
+                                <button onclick="changePitch(-1)">−</button>
+                                <div class="stepper-value" id="pitch-value">0 st</div>
+                                <button onclick="changePitch(1)">+</button>
+                            </div>
+                            <button class="popover-reset" onclick="setPitch(0)">RESET</button>
+                        </div>
+                    </div>
+                    <div class="download-menu" id="download-menu">
+                        <button class="pill-btn" onclick="toggleDownloadMenu()"><i class="fas fa-download"></i> 다운로드</button>
+                        <div class="download-popover" id="download-list"></div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="studio-body">
+                <aside class="track-controls" id="track-controls"></aside>
+                <section class="timeline" id="timeline">
+                    <div class="ruler"></div>
+                    <div class="playhead" id="playhead"></div>
+                    <div class="wave-stack" id="wave-stack"></div>
+                </section>
+                <section class="lyrics-dock">
+                    <div class="lyrics-dock-head">
+                        <div class="lyrics-dock-title">LYRICS</div>
+                        <div class="lyrics-dock-actions">
+                            <button class="icon-btn" onclick="extractLyrics()" title="가사 추출"><i class="fas fa-wand-magic-sparkles"></i></button>
+                            <button class="icon-btn" onclick="copyLyrics()" title="복사"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="lyrics-dock-body" id="lyrics-body">보컬 트랙에서 가사를 추출할 수 있습니다.</div>
+                </section>
+            </div>
+
+            <footer class="studio-footer">
+                <div></div>
+                <div class="transport">
+                    <div class="transport-buttons">
+                        <button class="icon-btn" onclick="toggleMasterMute()" title="전체 음소거"><i id="master-volume-icon" class="fas fa-volume-high"></i></button>
+                        <button class="icon-btn" onclick="seekBy(-5)" title="5초 뒤로"><i class="fas fa-backward"></i></button>
+                        <button class="play-btn" onclick="togglePlayback()" title="재생"><i id="play-icon" class="fas fa-play"></i></button>
+                        <button class="icon-btn" onclick="seekBy(5)" title="5초 앞으로"><i class="fas fa-forward"></i></button>
+                        <button class="icon-btn" onclick="restartPlayback()" title="처음부터"><i class="fas fa-rotate-left"></i></button>
+                    </div>
+                    <span class="time-code" id="current-time">0:00</span>
+                    <input class="scrubber" id="scrubber" type="range" min="0" max="1000" value="0" oninput="seekToSlider(this.value)">
+                    <span class="time-code" id="duration-time">0:00</span>
+                </div>
+            </footer>
+        </section>
+
+        <section class="history-panel" id="history-panel" aria-hidden="true">
+            <div class="history-card">
+                <div class="history-head">
+                    <div>
+                        <h2>보관함</h2>
+                        <p>최근 7일 동안의 분리 작업</p>
+                    </div>
+                    <button class="icon-btn" onclick="closeHistory()" title="닫기"><i class="fas fa-xmark"></i></button>
+                </div>
+                <div class="history-list" id="history-list"></div>
+            </div>
+        </section>
+
+        <section class="confirm-modal" id="delete-modal" aria-hidden="true">
+            <div class="confirm-card">
+                <h3>파일 완전 삭제</h3>
+                <p id="delete-message">이 작업의 결과 파일을 완전히 삭제할까요?</p>
+                <div class="confirm-actions">
+                    <button class="pill-btn" onclick="closeDeleteModal()">취소</button>
+                    <button class="danger-btn" onclick="confirmDeleteJob()">완전 삭제</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="confirm-modal" id="folder-modal" aria-hidden="true">
+            <div class="confirm-card">
+                <h3>새 폴더</h3>
+                <p>라이브러리에 추가할 폴더 이름을 입력하세요.</p>
+                <input class="modal-input" id="folder-name-input" type="text" value="새 폴더" maxlength="30">
+                <div class="confirm-actions">
+                    <button class="pill-btn" onclick="closeFolderModal()">취소</button>
+                    <button class="danger-btn folder-save-btn" onclick="confirmAddFolder()">추가</button>
+                </div>
+            </div>
+        </section>
+    </main>
 </div>
 
 <script>
-    function toggleSidebar() {
-        const sb = document.getElementById('sidebar');
-        sb.style.width = sb.style.width === '70px' ? '260px' : '70px';
-        // 텍스트 숨기기 로직 추가 가능
+    const API_BASE_URL = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+    const stemMeta = {
+        no_vocals: { label: 'Instrumental', color: '#b58cff', icon: 'fa-music', order: 1 },
+        vocals: { label: 'Vocals', color: '#8fd450', icon: 'fa-microphone', order: 0 },
+        drums: { label: 'Drums', color: '#57c7ff', icon: 'fa-drum', order: 1 },
+        bass: { label: 'Bass', color: '#f1bf54', icon: 'fa-guitar', order: 2 },
+        guitar: { label: 'Guitar', color: '#ef7a83', icon: 'fa-guitar', order: 3 },
+        piano: { label: 'Piano', color: '#b58cff', icon: 'fa-music', order: 4 },
+        other: { label: 'Other', color: '#ef7a83', icon: 'fa-layer-group', order: 5 }
+    };
+
+    const sidebar = document.getElementById('sidebar');
+    const uploadView = document.getElementById('upload-view');
+    const processingView = document.getElementById('processing-view');
+    const studioView = document.getElementById('studio-view');
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercent = document.getElementById('progress-percent');
+    const statusText = document.getElementById('status-text');
+    const fileInput = document.getElementById('file-input');
+    const actionBtn = document.getElementById('action-btn');
+    const filePreviewCard = document.getElementById('file-preview-card');
+    const fileNameDisplay = document.getElementById('file-name');
+    const fileSizeDisplay = document.getElementById('file-size');
+    const trackControls = document.getElementById('track-controls');
+    const waveStack = document.getElementById('wave-stack');
+    const playhead = document.getElementById('playhead');
+    const playIcon = document.getElementById('play-icon');
+    const scrubber = document.getElementById('scrubber');
+    const currentTimeLabel = document.getElementById('current-time');
+    const durationTimeLabel = document.getElementById('duration-time');
+    const studioTitle = document.getElementById('studio-title');
+    const studioSubtitle = document.getElementById('studio-subtitle');
+    const downloadList = document.getElementById('download-list');
+    const downloadMenu = document.getElementById('download-menu');
+    const speedLabel = document.getElementById('speed-label');
+    const speedValue = document.getElementById('speed-value');
+    const pitchLabel = document.getElementById('pitch-label');
+    const pitchValue = document.getElementById('pitch-value');
+    const masterVolumeIcon = document.getElementById('master-volume-icon');
+    const albumCover = document.getElementById('album-cover');
+    const historyPanel = document.getElementById('history-panel');
+    const historyList = document.getElementById('history-list');
+    const lyricsBody = document.getElementById('lyrics-body');
+    const sidebarLibrary = document.getElementById('sidebar-library');
+    const libraryRootDropzone = document.getElementById('library-root-dropzone');
+    const deleteModal = document.getElementById('delete-modal');
+    const deleteMessage = document.getElementById('delete-message');
+    const folderModal = document.getElementById('folder-modal');
+    const folderNameInput = document.getElementById('folder-name-input');
+
+    let selectedFile = null;
+    let progressTimer = null;
+    let audioContext = null;
+    let tracks = [];
+    let activeSources = [];
+    let startedAt = 0;
+    let pausedAt = 0;
+    let duration = 0;
+    let isPlaying = false;
+    let masterMuted = false;
+    let rafId = null;
+    let playbackRate = 1;
+    let pitchSemitones = 0;
+    let currentJob = null;
+    let currentLyricsText = '';
+    let currentLyricsSegments = [];
+    let activeLyricsIndex = -1;
+    let currentMode = 'vocals';
+    let pendingDeleteJobId = null;
+    let pendingDeleteJobName = '';
+    let libraryDraggedItem = null;
+    let libraryDropHandled = false;
+
+    function getEffectivePlaybackRate() {
+        return playbackRate * Math.pow(2, pitchSemitones / 12);
     }
 
-    // 드래그 앤 드롭 로직
-    const mainContent = document.getElementById('main-content');
-    const dropZone = document.getElementById('drop-zone');
+    function collapseSidebar() { sidebar.classList.add('collapsed'); }
+    function expandSidebar() { if (sidebar.classList.contains('collapsed')) sidebar.classList.remove('collapsed'); }
+    function toggleSidebar() { sidebar.classList.toggle('collapsed'); }
 
-    mainContent.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.style.display = 'flex';
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.style.display = 'none';
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.style.display = 'none';
-        const files = e.dataTransfer.files;
-        if(files.length > 0) {
-            alert(files[0].name + " 파일을 업로드합니다.");
-            // 여기에 업로드 함수 연결
+    function selectSeparationMode(mode, goHome = false) {
+        currentMode = mode;
+        document.querySelectorAll('[data-mode]').forEach((item) => {
+            item.classList.toggle('active', item.dataset.mode === mode);
+        });
+        const labels = {
+            vocals: '보컬만 빠르게 분리합니다.',
+            '4stems': '보컬, 드럼, 베이스, 기타 트랙으로 분리합니다.',
+            '6stems': '보컬, 드럼, 베이스, 기타, 피아노, 기타 악기까지 분리합니다.'
+        };
+        if (!selectedFile) {
+            document.querySelector('.upload-view p').innerText = labels[mode] || 'AI STEM STUDIO';
         }
-    });
-
-    function addFolder() {
-        const name = prompt("새 폴더 이름을 입력하세요:");
-        if(name) {
-            const list = document.getElementById('folder-list');
-            const div = document.createElement('div');
-            div.className = 'folder-item';
-            div.innerHTML = `<i class="fas fa-folder"></i> &nbsp; ${name}`;
-            list.appendChild(div);
+        if (goHome) {
+            resetToUploadScreen(false);
+            document.querySelector('.upload-view p').innerText = labels[mode] || 'AI STEM STUDIO';
         }
     }
+
+    fileInput.addEventListener('change', (e) => handleFileSelect(e.target.files[0]));
+    function isFileDrag(event) {
+        return Array.from(event.dataTransfer?.types || []).includes('Files');
+    }
+
+    window.addEventListener('dragover', (e) => {
+        if (!isFileDrag(e)) return;
+        e.preventDefault();
+        document.getElementById('drop-zone').style.display = 'flex';
+    });
+    document.getElementById('drop-zone').addEventListener('dragleave', () => { document.getElementById('drop-zone').style.display = 'none'; });
+    window.addEventListener('drop', (e) => {
+        if (!isFileDrag(e)) return;
+        e.preventDefault();
+        document.getElementById('drop-zone').style.display = 'none';
+        if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
+    });
+    document.addEventListener('click', (event) => {
+        if (!downloadMenu.contains(event.target)) downloadMenu.classList.remove('open');
+        document.querySelectorAll('.control-menu').forEach((menu) => {
+            if (!menu.contains(event.target)) menu.classList.remove('open');
+        });
+    });
+
+    function handleFileSelect(file) {
+        if (!file) return;
+        const audioExtensions = ['.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.wma'];
+        const lowerName = file.name.toLowerCase();
+        const hasAudioExtension = audioExtensions.some((extension) => lowerName.endsWith(extension));
+        if (!file.type.startsWith('audio/') && !hasAudioExtension) {
+            showError('지원하지 않는 파일', '오디오 파일만 선택할 수 있습니다.');
+            return;
+        }
+
+        selectedFile = file;
+        filePreviewCard.style.display = 'flex';
+        document.getElementById('player-preview').style.display = 'none';
+        fileNameDisplay.innerText = file.name;
+        fileSizeDisplay.innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+        actionBtn.innerText = '분리 시작';
+        actionBtn.style.background = 'var(--accent)';
+        actionBtn.style.color = '#071008';
+        actionBtn.onclick = startProcessing;
+    }
+
+    async function startProcessing() {
+        if (!selectedFile) return;
+        stopPlayback();
+        uploadView.style.display = 'none';
+        studioView.style.display = 'none';
+        processingView.style.display = 'flex';
+        actionBtn.disabled = true;
+        statusText.innerText = '파일을 업로드하는 중입니다...';
+
+        let progress = 0;
+        progressTimer = setInterval(() => {
+            progress = Math.min(progress + Math.random() * 7, 92);
+            progressBar.style.width = progress + '%';
+            progressPercent.innerText = Math.floor(progress) + '%';
+            if (progress > 18) statusText.innerText = 'AI 분리 작업을 실행 중입니다...';
+            if (progress > 70) statusText.innerText = '결과 파일을 정리하는 중입니다...';
+        }, 600);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('mode', currentMode);
+            const response = await fetch(`${API_BASE_URL}/upload`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (!response.ok || data.status === 'error') throw new Error(data.message || data.error || '분리 작업에 실패했습니다.');
+            if (data.id) localStorage.setItem('divimusic:lastJobId', data.id);
+            finishProgress();
+            await showStudio(data);
+            refreshSidebarLibrary();
+        } catch (error) {
+            clearInterval(progressTimer);
+            showError('작업 실패', error.message);
+        }
+    }
+
+    function finishProgress() {
+        clearInterval(progressTimer);
+        progressBar.style.width = '100%';
+        progressPercent.innerText = '100%';
+        statusText.innerText = '분리 완료!';
+    }
+
+    async function showStudio(data) {
+        currentJob = data;
+        currentLyricsText = data.lyrics?.text || '';
+        processingView.style.display = 'none';
+        uploadView.style.display = 'none';
+        studioView.style.display = 'grid';
+        trackControls.innerHTML = '';
+        waveStack.innerHTML = '';
+        downloadList.innerHTML = '';
+        pausedAt = 0;
+        duration = 0;
+
+        const files = sortStemFiles((data.files || []).filter((file) => isPlayableAudio(file.name)));
+        studioTitle.innerText = data.originalName || selectedFile?.name || '분리된 프로젝트';
+        studioSubtitle.innerText = `${data.modeLabel || '트랙 분리'} · ${files.length}개 트랙 준비됨`;
+        renderCover(data.cover);
+        renderLyrics(data.lyrics);
+
+        if (files.length === 0) {
+            waveStack.innerHTML = '<div class="empty-result">재생 가능한 오디오 결과 파일이 없습니다.</div>';
+            return;
+        }
+
+        audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+        tracks = files.map((file, index) => makeTrack(file, index));
+        renderDownloadMenu(files, data);
+        renderTrackShells();
+        await loadTrackBuffers();
+        updateMixState();
+        drawAllWaveforms();
+        durationTimeLabel.innerText = formatTime(duration);
+        updatePlayhead(0);
+    }
+
+    function makeTrack(file, index) {
+        const key = getStemKey(file.name);
+        const meta = stemMeta[key] || stemMeta.other;
+        return {
+            id: `track-${index}`,
+            file,
+            label: meta.label,
+            color: meta.color,
+            icon: meta.icon,
+            volume: 1,
+            muted: false,
+            solo: false,
+            buffer: null,
+            gain: null,
+            canvas: null
+        };
+    }
+
+    function getStemKey(filename) {
+        const lowerName = filename.toLowerCase();
+        return Object.keys(stemMeta).find((name) => lowerName.includes(name)) || 'other';
+    }
+
+    function sortStemFiles(files) {
+        return [...files].sort((a, b) => {
+            const aMeta = stemMeta[getStemKey(a.name)] || stemMeta.other;
+            const bMeta = stemMeta[getStemKey(b.name)] || stemMeta.other;
+            return aMeta.order - bMeta.order || a.name.localeCompare(b.name);
+        });
+    }
+
+    function isPlayableAudio(filename) {
+        const lowerName = filename.toLowerCase();
+        return ['.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg'].some((extension) => lowerName.endsWith(extension));
+    }
+
+    function renderCover(coverDataUrl) {
+        if (coverDataUrl) {
+            albumCover.innerHTML = `<img src="${coverDataUrl}" alt="">`;
+            return;
+        }
+        albumCover.innerHTML = '<i class="fas fa-music"></i>';
+    }
+
+    function renderTrackShells() {
+        tracks.forEach((track, index) => {
+            const control = document.createElement('div');
+            control.className = 'track-control-row';
+            control.style.setProperty('--track-color', track.color);
+            control.innerHTML = `
+                <div class="track-line">
+                    <div class="track-name"><span class="track-dot"></span><i class="fas ${track.icon}"></i><span>${track.label}</span></div>
+                    <div class="track-toggles">
+                        <button class="tiny-btn mute" id="${track.id}-mute" onclick="toggleMute(${index})">M</button>
+                        <button class="tiny-btn solo" id="${track.id}-solo" onclick="toggleSolo(${index})">S</button>
+                    </div>
+                </div>
+                <div class="volume-row">
+                    <i class="fas fa-volume-low"></i>
+                    <input type="range" min="0" max="120" value="100" oninput="setTrackVolume(${index}, this.value)">
+                    <span class="volume-value" id="${track.id}-volume">100%</span>
+                </div>
+            `;
+            trackControls.appendChild(control);
+
+            const wave = document.createElement('div');
+            wave.className = 'wave-track';
+            wave.style.setProperty('--track-color', track.color);
+            wave.onclick = (event) => seekFromWave(event, wave);
+            wave.innerHTML = `<canvas id="${track.id}-canvas"></canvas><div class="wave-loading">파형 분석 중</div>`;
+            waveStack.appendChild(wave);
+            track.canvas = wave.querySelector('canvas');
+        });
+    }
+
+    async function loadTrackBuffers() {
+        const requests = tracks.map(async (track) => {
+            const url = `${API_BASE_URL}${track.file.streamUrl || track.file.url}`;
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            track.buffer = await audioContext.decodeAudioData(arrayBuffer);
+            track.gain = audioContext.createGain();
+            track.gain.connect(audioContext.destination);
+            duration = Math.max(duration, track.buffer.duration);
+        });
+        await Promise.all(requests);
+    }
+
+    function drawAllWaveforms() {
+        tracks.forEach((track) => drawWaveform(track));
+    }
+
+    function drawWaveform(track) {
+        const canvas = track.canvas;
+        const parent = canvas.parentElement;
+        const rect = parent.getBoundingClientRect();
+        const scale = window.devicePixelRatio || 1;
+        canvas.width = Math.max(760, Math.floor(rect.width)) * scale;
+        canvas.height = Math.floor(rect.height) * scale;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = getComputedStyle(parent).getPropertyValue('--track-color').trim();
+        ctx.globalAlpha = 0.22;
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalAlpha = 1;
+
+        if (!track.buffer) return;
+        parent.querySelector('.wave-loading')?.remove();
+        const data = track.buffer.getChannelData(0);
+        const step = Math.max(1, Math.floor(data.length / width));
+        const mid = height / 2;
+        ctx.strokeStyle = 'rgba(8, 47, 56, 0.78)';
+        ctx.lineWidth = Math.max(1, scale);
+        ctx.beginPath();
+        for (let x = 0; x < width; x++) {
+            let min = 1;
+            let max = -1;
+            const start = x * step;
+            for (let i = 0; i < step && start + i < data.length; i++) {
+                const value = data[start + i];
+                if (value < min) min = value;
+                if (value > max) max = value;
+            }
+            ctx.moveTo(x, mid + min * mid * 0.78);
+            ctx.lineTo(x, mid + max * mid * 0.78);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+        ctx.beginPath();
+        ctx.moveTo(0, mid);
+        ctx.lineTo(width, mid);
+        ctx.stroke();
+    }
+
+    function renderDownloadMenu(files, data = {}) {
+        const all = document.createElement('a');
+        all.href = `${API_BASE_URL}${data.zipUrl || `/jobs/${data.id}/zip`}`;
+        all.download = '';
+        all.innerHTML = '<i class="fas fa-box-archive"></i><span>ZIP으로 모두 다운로드</span>';
+        downloadList.appendChild(all);
+
+        files.forEach((file) => {
+            const track = makeTrack(file, 0);
+            const link = document.createElement('a');
+            link.href = `${API_BASE_URL}${file.url}`;
+            link.download = file.name;
+            link.innerHTML = `<i class="fas ${track.icon}"></i><span>${track.label} - ${file.name}</span>`;
+            downloadList.appendChild(link);
+        });
+    }
+
+    function toggleDownloadMenu() {
+        document.querySelectorAll('.control-menu').forEach((menu) => menu.classList.remove('open'));
+        downloadMenu.classList.toggle('open');
+    }
+
+    function togglePlayback() {
+        if (isPlaying) {
+            pausePlayback();
+        } else {
+            startPlayback(pausedAt);
+        }
+    }
+
+    async function startPlayback(offset = 0) {
+        if (!tracks.length) return;
+        if (audioContext.state === 'suspended') await audioContext.resume();
+        stopSourcesOnly();
+        const safeOffset = Math.min(Math.max(offset, 0), Math.max(duration - 0.05, 0));
+        startedAt = audioContext.currentTime - safeOffset / getEffectivePlaybackRate();
+        activeSources = tracks.map((track) => {
+            const source = audioContext.createBufferSource();
+            source.buffer = track.buffer;
+            source.playbackRate.value = playbackRate;
+            source.detune.value = pitchSemitones * 100;
+            source.connect(track.gain);
+            source.start(0, safeOffset);
+            return source;
+        });
+        isPlaying = true;
+        playIcon.className = 'fas fa-pause';
+        tick();
+    }
+
+    function pausePlayback() {
+        if (!isPlaying) return;
+        pausedAt = Math.min((audioContext.currentTime - startedAt) * getEffectivePlaybackRate(), duration);
+        stopSourcesOnly();
+        isPlaying = false;
+        playIcon.className = 'fas fa-play';
+        updatePlayhead(pausedAt);
+    }
+
+    function stopSourcesOnly() {
+        activeSources.forEach((source) => {
+            try { source.stop(); } catch (error) {}
+        });
+        activeSources = [];
+        cancelAnimationFrame(rafId);
+    }
+
+    function stopPlayback() {
+        pausePlayback();
+        pausedAt = 0;
+        updatePlayhead(0);
+    }
+
+    function restartPlayback() {
+        pausedAt = 0;
+        updatePlayhead(0);
+        if (isPlaying) startPlayback(0);
+    }
+
+    function seekBy(seconds) {
+        const next = Math.min(Math.max(getCurrentPosition() + seconds, 0), duration);
+        seekTo(next);
+    }
+
+    function seekToSlider(value) {
+        seekTo((Number(value) / 1000) * duration);
+    }
+
+    function seekFromWave(event, element) {
+        const rect = element.getBoundingClientRect();
+        const ratio = (event.clientX - rect.left) / rect.width;
+        seekTo(Math.min(Math.max(ratio, 0), 1) * duration);
+    }
+
+    function seekTo(position) {
+        pausedAt = Math.min(Math.max(position, 0), duration);
+        updatePlayhead(pausedAt);
+        if (isPlaying) startPlayback(pausedAt);
+    }
+
+    function getCurrentPosition() {
+        return isPlaying ? Math.min((audioContext.currentTime - startedAt) * getEffectivePlaybackRate(), duration) : pausedAt;
+    }
+
+    function tick() {
+        const position = getCurrentPosition();
+        updatePlayhead(position);
+        if (position >= duration) {
+            isPlaying = false;
+            pausedAt = 0;
+            stopSourcesOnly();
+            playIcon.className = 'fas fa-play';
+            updatePlayhead(0);
+            return;
+        }
+        rafId = requestAnimationFrame(tick);
+    }
+
+    function updatePlayhead(position) {
+        const ratio = duration ? position / duration : 0;
+        playhead.style.left = `calc(18px + ${ratio * 100}%)`;
+        playhead.style.setProperty('--playhead-height', `${waveStack.offsetHeight + 34}px`);
+        scrubber.value = Math.floor(ratio * 1000);
+        currentTimeLabel.innerText = formatTime(position);
+        durationTimeLabel.innerText = formatTime(duration);
+        updateKaraokeHighlight(position);
+    }
+
+    function toggleControlMenu(menuId) {
+        document.querySelectorAll('.control-menu').forEach((menu) => {
+            menu.classList.toggle('open', menu.id === menuId && !menu.classList.contains('open'));
+        });
+        downloadMenu.classList.remove('open');
+    }
+
+    function changeSpeed(delta) {
+        setSpeed(Math.min(2, Math.max(0.5, playbackRate + delta)));
+    }
+
+    function setSpeed(value) {
+        const position = getCurrentPosition();
+        playbackRate = Number(value.toFixed(2));
+        const label = `${Number.isInteger(playbackRate) ? playbackRate.toFixed(0) : playbackRate}x`;
+        speedLabel.innerText = label;
+        speedValue.innerText = label;
+        activeSources.forEach((source) => source.playbackRate.value = playbackRate);
+        if (isPlaying && audioContext) startedAt = audioContext.currentTime - position / getEffectivePlaybackRate();
+    }
+
+    function changePitch(delta) {
+        setPitch(Math.min(12, Math.max(-12, pitchSemitones + delta)));
+    }
+
+    function setPitch(value) {
+        const position = getCurrentPosition();
+        pitchSemitones = value;
+        const label = `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`;
+        pitchLabel.innerText = label;
+        pitchValue.innerText = label;
+        activeSources.forEach((source) => source.detune.value = pitchSemitones * 100);
+        if (isPlaying && audioContext) startedAt = audioContext.currentTime - position / getEffectivePlaybackRate();
+    }
+
+    function setTrackVolume(index, value) {
+        tracks[index].volume = Number(value) / 100;
+        document.getElementById(`${tracks[index].id}-volume`).innerText = `${value}%`;
+        updateMixState();
+    }
+
+    function toggleMute(index) {
+        tracks[index].muted = !tracks[index].muted;
+        updateMixState();
+    }
+
+    function toggleSolo(index) {
+        tracks[index].solo = !tracks[index].solo;
+        updateMixState();
+    }
+
+    function toggleMasterMute() {
+        masterMuted = !masterMuted;
+        masterVolumeIcon.className = masterMuted ? 'fas fa-volume-xmark' : 'fas fa-volume-high';
+        updateMixState();
+    }
+
+    function updateMixState() {
+        const hasSolo = tracks.some((track) => track.solo);
+        tracks.forEach((track) => {
+            const audible = !masterMuted && !track.muted && (!hasSolo || track.solo);
+            if (track.gain) track.gain.gain.value = audible ? track.volume : 0;
+            document.getElementById(`${track.id}-mute`)?.classList.toggle('active', track.muted);
+            document.getElementById(`${track.id}-solo`)?.classList.toggle('active', track.solo);
+            track.canvas?.parentElement.classList.toggle('muted', !audible);
+        });
+    }
+
+    function focusLyricsDock() {
+        document.querySelector('.lyrics-dock')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function extractLyrics() {
+        if (!currentJob?.id) {
+            lyricsBody.innerText = '먼저 분리 작업을 완료해 주세요.';
+            focusLyricsDock();
+            return;
+        }
+
+        focusLyricsDock();
+        lyricsBody.innerText = '보컬 트랙에서 가사를 추출하는 중입니다. 첫 실행은 모델 다운로드 때문에 시간이 걸릴 수 있습니다.';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${currentJob.id}/lyrics`, { method: 'POST' });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || `가사 추출에 실패했습니다. (${response.status})`);
+            currentJob.lyrics = data;
+            currentLyricsText = data.text || '';
+            renderLyrics(data);
+        } catch (error) {
+            lyricsBody.innerText = `가사 추출 실패\n${error.message}`;
+        }
+    }
+
+    function openLyricsFromMenu() {
+        if (currentJob?.id) {
+            focusLyricsDock();
+            return;
+        }
+        selectSeparationMode('vocals');
+        uploadView.style.display = 'flex';
+        processingView.style.display = 'none';
+        studioView.style.display = 'none';
+        document.querySelector('.upload-view p').innerText = '가사 추출은 보컬 분리 후 실행할 수 있습니다.';
+    }
+
+    function showComingSoon(label) {
+        alert(`${label} 기능은 다음 단계에서 연결할게요.`);
+    }
+
+    function renderLyrics(lyrics) {
+        if (!lyrics?.text) {
+            lyricsBody.innerText = '보컬 트랙에서 가사를 추출할 수 있습니다.';
+            currentLyricsSegments = [];
+            activeLyricsIndex = -1;
+            return;
+        }
+
+        currentLyricsText = lyrics.text;
+        const segments = lyrics.segments || [];
+        if (segments.length === 0) {
+            lyricsBody.innerText = lyrics.text;
+            currentLyricsSegments = [];
+            activeLyricsIndex = -1;
+            return;
+        }
+
+        currentLyricsSegments = segments;
+        activeLyricsIndex = -1;
+        lyricsBody.innerHTML = segments.map((segment, index) => `
+            <div class="karaoke-line" data-lyric-index="${index}">
+                <div class="karaoke-time">${formatTime(segment.start)}</div>
+                ${renderKaraokeText(segment)}
+            </div>
+        `).join('');
+        updateKaraokeHighlight(getCurrentPosition());
+    }
+
+    function renderKaraokeText(segment) {
+        const words = Array.isArray(segment.words) ? segment.words.filter((word) => word?.text?.trim()) : [];
+        if (!words.length) {
+            return `<div class="karaoke-text" data-text="${escapeAttribute(segment.text)}">${escapeHtml(segment.text)}</div>`;
+        }
+
+        const wordMarkup = words.map((word, index) => {
+            const start = Number.isFinite(Number(word.start)) ? Number(word.start) : segment.start;
+            const end = Number.isFinite(Number(word.end)) ? Number(word.end) : start;
+            return `<span class="karaoke-word" data-word-index="${index}" data-start="${start}" data-end="${end}" data-word="${escapeAttribute(word.text)}">${escapeHtml(word.text)}</span>`;
+        }).join('');
+
+        return `<div class="karaoke-text">${wordMarkup}</div>`;
+    }
+
+    function updateKaraokeHighlight(position) {
+        if (!currentLyricsSegments.length) return;
+
+        const index = currentLyricsSegments.findIndex((segment, segmentIndex) => {
+            const nextStart = currentLyricsSegments[segmentIndex + 1]?.start ?? segment.end;
+            return position >= segment.start && position < Math.max(segment.end, nextStart);
+        });
+
+        if (index !== activeLyricsIndex) {
+            const previous = lyricsBody.querySelector('.karaoke-line.active');
+            previous?.classList.remove('active');
+            activeLyricsIndex = index;
+
+            if (index >= 0) {
+                const current = lyricsBody.querySelector(`[data-lyric-index="${index}"]`);
+                current?.classList.add('active');
+                current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        updateKaraokeFill(position);
+    }
+
+    function updateKaraokeFill(position) {
+        lyricsBody.querySelectorAll('.karaoke-line').forEach((line, lineIndex) => {
+            const segment = currentLyricsSegments[lineIndex];
+            const text = line.querySelector('.karaoke-text');
+            if (!segment || !text) return;
+
+            const nextStart = currentLyricsSegments[lineIndex + 1]?.start;
+            const end = Math.max(segment.end || segment.start, nextStart ?? segment.end ?? segment.start + 1);
+            const words = [...line.querySelectorAll('.karaoke-word')];
+
+            if (words.length) {
+                words.forEach((word, wordIndex) => {
+                    const start = Number(word.dataset.start) || segment.start;
+                    const nextWordStart = Number(words[wordIndex + 1]?.dataset.start);
+                    const rawEnd = Number(word.dataset.end);
+                    const wordEnd = Math.max(rawEnd || start, Number.isFinite(nextWordStart) ? nextWordStart : rawEnd || end);
+                    let fill = 0;
+
+                    if (position >= wordEnd) {
+                        fill = 100;
+                    } else if (position > start) {
+                        const span = Math.max(wordEnd - start, 0.08);
+                        fill = ((position - start) / span) * 100;
+                    }
+
+                    word.classList.toggle('active', fill > 0 && fill < 100);
+                    word.style.setProperty('--fill', `${Math.max(0, Math.min(100, fill)).toFixed(2)}%`);
+                });
+                return;
+            }
+
+            let fill = 0;
+            if (position >= end) {
+                fill = 100;
+            } else if (position > segment.start) {
+                const span = Math.max(end - segment.start, 0.2);
+                fill = ((position - segment.start) / span) * 100;
+            }
+            text.style.setProperty('--fill', `${Math.max(0, Math.min(100, fill)).toFixed(2)}%`);
+        });
+    }
+
+    async function copyLyrics() {
+        if (!currentLyricsText) {
+            lyricsBody.innerText = '복사할 가사가 아직 없습니다.';
+            return;
+        }
+        await navigator.clipboard.writeText(currentLyricsText);
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function escapeAttribute(value) {
+        return escapeHtml(value).replaceAll('`', '&#096;');
+    }
+
+    function getLibraryLayout() {
+        try {
+            return normalizeLibraryLayout(JSON.parse(localStorage.getItem('divimusic:libraryLayout')) || { items: [] });
+        } catch (error) {
+            return { items: [] };
+        }
+    }
+
+    function normalizeLibraryLayout(layout) {
+        const normalized = { items: [] };
+        (layout.items || []).forEach((item) => {
+            if (item.type === 'folder') {
+                normalized.items.push({
+                    type: 'folder',
+                    id: item.id,
+                    name: item.name || '새 폴더',
+                    expanded: item.expanded !== false,
+                    children: item.children || []
+                });
+            } else if (item.type === 'job') {
+                normalized.items.push({ type: 'job', id: item.id });
+            }
+        });
+        return normalized;
+    }
+
+    function saveLibraryLayoutFromDom() {
+        const items = [];
+        Array.from(sidebarLibrary.children).forEach((node) => {
+            if (node.classList.contains('library-folder')) {
+                const folderItem = node.querySelector(':scope > .library-item');
+                const children = Array.from(node.querySelectorAll('.library-folder-children .library-item[data-library-type="job"]'))
+                    .map((item) => item.dataset.libraryId);
+                items.push({
+                    type: 'folder',
+                    id: folderItem.dataset.libraryId,
+                    name: folderItem.querySelector('.library-title')?.innerText || '새 폴더',
+                    expanded: !node.classList.contains('collapsed-folder'),
+                    children
+                });
+                return;
+            }
+
+            if (node.classList.contains('library-item') && node.dataset.libraryType === 'job') {
+                items.push({ type: 'job', id: node.dataset.libraryId });
+            }
+        });
+        localStorage.setItem('divimusic:libraryLayout', JSON.stringify({ items }));
+    }
+
+    function openFolderModal() {
+        folderNameInput.value = '새 폴더';
+        folderModal.classList.add('open');
+        folderModal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => folderNameInput.focus(), 0);
+    }
+
+    function closeFolderModal() {
+        folderModal.classList.remove('open');
+        folderModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function confirmAddFolder() {
+        const name = folderNameInput.value.trim();
+        if (!name) return;
+        const layout = getLibraryLayout();
+        layout.items.unshift({ type: 'folder', id: `folder-${Date.now()}`, name: name.trim(), expanded: true, children: [] });
+        localStorage.setItem('divimusic:libraryLayout', JSON.stringify(layout));
+        closeFolderModal();
+        refreshSidebarLibrary();
+    }
+
+    function deleteLibraryFolder(event, folderId) {
+        event.stopPropagation();
+        const layout = getLibraryLayout();
+        const folder = layout.items.find((item) => item.id === folderId);
+        const children = (folder?.children || []).map((id) => ({ type: 'job', id }));
+        layout.items = layout.items.flatMap((item) => item.id === folderId ? children : [item]);
+        localStorage.setItem('divimusic:libraryLayout', JSON.stringify(layout));
+        refreshSidebarLibrary();
+    }
+
+    function toggleLibraryFolder(event, folderId) {
+        event.stopPropagation();
+        const layout = getLibraryLayout();
+        const folder = layout.items.find((item) => item.type === 'folder' && item.id === folderId);
+        if (!folder) return;
+        folder.expanded = !folder.expanded;
+        localStorage.setItem('divimusic:libraryLayout', JSON.stringify(layout));
+        refreshSidebarLibrary();
+    }
+
+    function moveJobToFolder(jobId, folderId) {
+        const layout = getLibraryLayout();
+        layout.items = layout.items
+            .map((item) => item.type === 'folder' ? { ...item, children: (item.children || []).filter((id) => id !== jobId) } : item)
+            .filter((item) => !(item.type === 'job' && item.id === jobId));
+        const folder = layout.items.find((item) => item.type === 'folder' && item.id === folderId);
+        if (folder) {
+            folder.children = folder.children || [];
+            folder.children.push(jobId);
+            folder.expanded = true;
+        }
+        localStorage.setItem('divimusic:libraryLayout', JSON.stringify(layout));
+        refreshSidebarLibrary();
+    }
+
+    function moveJobToRoot(jobId) {
+        const layout = getLibraryLayout();
+        layout.items = layout.items
+            .map((item) => item.type === 'folder' ? { ...item, children: (item.children || []).filter((id) => id !== jobId) } : item)
+            .filter((item) => !(item.type === 'job' && item.id === jobId));
+        layout.items.push({ type: 'job', id: jobId });
+        localStorage.setItem('divimusic:libraryLayout', JSON.stringify(layout));
+        refreshSidebarLibrary();
+    }
+
+    function wireLibraryDragAndDrop() {
+        sidebarLibrary.querySelectorAll('.library-item').forEach((item) => {
+            item.addEventListener('dragstart', (event) => {
+                libraryDraggedItem = item;
+                libraryDropHandled = false;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', item.dataset.libraryId || '');
+                item.classList.add('dragging');
+            });
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                sidebarLibrary.querySelectorAll('.folder-drop-target').forEach((node) => node.classList.remove('folder-drop-target'));
+                libraryRootDropzone.classList.remove('root-drop-target');
+                if (!libraryDropHandled) saveLibraryLayoutFromDom();
+                libraryDraggedItem = null;
+                libraryDropHandled = false;
+            });
+            item.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                if (!libraryDraggedItem || libraryDraggedItem === item) return;
+                if (item.dataset.libraryType === 'folder' && libraryDraggedItem.dataset.libraryType === 'job') {
+                    event.dataTransfer.dropEffect = 'move';
+                    item.classList.add('folder-drop-target');
+                    return;
+                }
+                const rect = item.getBoundingClientRect();
+                const after = event.clientY > rect.top + rect.height / 2;
+                const draggedWrapper = libraryDraggedItem.closest('.library-folder') || libraryDraggedItem;
+                const itemWrapper = item.closest('.library-folder') || item;
+                if (draggedWrapper === itemWrapper) return;
+                sidebarLibrary.insertBefore(draggedWrapper, after ? itemWrapper.nextSibling : itemWrapper);
+            });
+            item.addEventListener('dragleave', () => item.classList.remove('folder-drop-target'));
+            item.addEventListener('drop', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                item.classList.remove('folder-drop-target');
+                if (libraryDraggedItem?.dataset.libraryType === 'job' && item.dataset.libraryType === 'folder') {
+                    libraryDropHandled = true;
+                    moveJobToFolder(libraryDraggedItem.dataset.libraryId, item.dataset.libraryId);
+                }
+            });
+        });
+    }
+
+    sidebarLibrary.addEventListener('dragover', (event) => {
+        if (!libraryDraggedItem || libraryDraggedItem.dataset.libraryType !== 'job') return;
+        event.preventDefault();
+        if (!event.target.closest('.library-item')) libraryRootDropzone.classList.add('root-drop-target');
+    });
+    sidebarLibrary.addEventListener('dragleave', (event) => {
+        if (!sidebarLibrary.contains(event.relatedTarget)) libraryRootDropzone.classList.remove('root-drop-target');
+    });
+    sidebarLibrary.addEventListener('drop', (event) => {
+        if (!libraryDraggedItem || libraryDraggedItem.dataset.libraryType !== 'job') return;
+        const targetItem = event.target.closest('.library-item');
+        if (targetItem?.dataset.libraryType === 'folder') return;
+        event.preventDefault();
+        libraryDropHandled = true;
+        libraryRootDropzone.classList.remove('root-drop-target');
+        moveJobToRoot(libraryDraggedItem.dataset.libraryId);
+    });
+
+    libraryRootDropzone.addEventListener('dragover', (event) => {
+        if (!libraryDraggedItem || libraryDraggedItem.dataset.libraryType !== 'job') return;
+        event.preventDefault();
+        libraryRootDropzone.classList.add('root-drop-target');
+    });
+    libraryRootDropzone.addEventListener('dragleave', () => {
+        libraryRootDropzone.classList.remove('root-drop-target');
+    });
+    libraryRootDropzone.addEventListener('drop', (event) => {
+        if (!libraryDraggedItem || libraryDraggedItem.dataset.libraryType !== 'job') return;
+        event.preventDefault();
+        libraryDropHandled = true;
+        libraryRootDropzone.classList.remove('root-drop-target');
+        moveJobToRoot(libraryDraggedItem.dataset.libraryId);
+    });
+
+    async function openHistory() {
+        historyPanel.classList.add('open');
+        historyPanel.setAttribute('aria-hidden', 'false');
+        historyList.innerHTML = '<div class="empty-result">작업 기록을 불러오는 중입니다.</div>';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs`);
+            const data = await response.json();
+            const jobs = data.jobs || [];
+            if (jobs.length === 0) {
+                historyList.innerHTML = '<div class="empty-result">아직 저장된 작업이 없습니다.</div>';
+                return;
+            }
+
+            historyList.innerHTML = '';
+            jobs.forEach((job) => {
+                const item = document.createElement('button');
+                item.className = 'history-item';
+                item.onclick = () => loadHistoryJob(job.id);
+                item.innerHTML = `
+                    <div class="history-thumb">${job.cover ? `<img src="${job.cover}" alt="">` : '<i class="fas fa-music"></i>'}</div>
+                    <div style="min-width:0; text-align:left;">
+                        <div class="history-title">${escapeHtml(job.originalName || '분리된 프로젝트')}</div>
+                        <div class="history-meta">${formatDate(job.createdAt)} · ${(job.files || []).length} tracks</div>
+                    </div>
+                    <span class="library-delete" onclick="openDeleteModal(event, '${job.id}', decodeURIComponent('${encodeURIComponent(job.originalName || '분리된 프로젝트')}'))" title="파일 삭제"><i class="fas fa-trash"></i></span>
+                `;
+                historyList.appendChild(item);
+            });
+        } catch (error) {
+            historyList.innerHTML = `<div class="empty-result">작업 기록을 불러오지 못했습니다.<br>${error.message}</div>`;
+        }
+    }
+
+    async function refreshSidebarLibrary() {
+        if (!sidebarLibrary) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs`);
+            const data = await response.json();
+            const jobsById = new Map((data.jobs || []).map((job) => [job.id, job]));
+            const layout = getLibraryLayout();
+            const folders = layout.items.filter((item) => item.type === 'folder');
+            const folderJobIds = folders.flatMap((folder) => folder.children || []);
+            const orderedJobIds = layout.items.filter((item) => item.type === 'job').map((item) => item.id);
+            const orderedJobs = [
+                ...orderedJobIds.map((id) => jobsById.get(id)).filter(Boolean),
+                ...(data.jobs || []).filter((job) => !orderedJobIds.includes(job.id) && !folderJobIds.includes(job.id))
+            ].slice(0, 8);
+
+            if (orderedJobs.length === 0 && folders.length === 0) {
+                sidebarLibrary.innerHTML = `
+                    <button class="library-item" onclick="openHistory()" draggable="true" data-library-type="history" data-library-id="history">
+                        <span class="library-cover"><i class="fas fa-archive"></i></span>
+                        <span class="library-copy"><span class="library-title">보관함 열기</span></span>
+                        <span></span>
+                    </button>
+                `;
+                wireLibraryDragAndDrop();
+                return;
+            }
+
+            sidebarLibrary.innerHTML = [
+                ...folders.map((folder) => {
+                    const childJobs = (folder.children || []).map((id) => jobsById.get(id)).filter(Boolean);
+                    return `
+                        <div class="library-folder ${folder.expanded === false ? 'collapsed-folder' : ''}" data-folder-id="${folder.id}">
+                            <button class="library-item" draggable="true" data-library-type="folder" data-library-id="${folder.id}" onclick="toggleLibraryFolder(event, '${folder.id}')">
+                                <span class="library-cover"><i class="fas fa-folder"></i></span>
+                                <span class="library-copy"><span class="library-title">${escapeHtml(folder.name)}</span></span>
+                                <span class="library-delete" onclick="deleteLibraryFolder(event, '${folder.id}')" title="폴더 삭제"><i class="fas fa-trash"></i></span>
+                            </button>
+                            <div class="library-folder-children">
+                                ${childJobs.map((job) => `
+                                    <button class="library-item" draggable="true" data-library-type="job" data-library-id="${job.id}" onclick="loadHistoryJob('${job.id}')">
+                                        <span class="library-cover">${job.cover ? `<img src="${job.cover}" alt="">` : '<i class="fas fa-music"></i>'}</span>
+                                        <span class="library-copy"><span class="library-title">${escapeHtml(job.originalName || '분리된 프로젝트')}</span></span>
+                                        <span class="library-delete" onclick="openDeleteModal(event, '${job.id}', decodeURIComponent('${encodeURIComponent(job.originalName || '분리된 프로젝트')}'))" title="파일 삭제"><i class="fas fa-trash"></i></span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }),
+                ...orderedJobs.map((job) => `
+                <button class="library-item" draggable="true" data-library-type="job" data-library-id="${job.id}" onclick="loadHistoryJob('${job.id}')">
+                    <span class="library-cover">${job.cover ? `<img src="${job.cover}" alt="">` : '<i class="fas fa-music"></i>'}</span>
+                    <span class="library-copy">
+                        <span class="library-title">${escapeHtml(job.originalName || '분리된 프로젝트')}</span>
+                    </span>
+                    <span class="library-delete" onclick="openDeleteModal(event, '${job.id}', decodeURIComponent('${encodeURIComponent(job.originalName || '분리된 프로젝트')}'))" title="파일 삭제"><i class="fas fa-trash"></i></span>
+                </button>
+            `)
+            ].join('');
+            wireLibraryDragAndDrop();
+        } catch (error) {
+            console.warn('라이브러리 갱신 실패:', error);
+        }
+    }
+
+    function closeHistory() {
+        historyPanel.classList.remove('open');
+        historyPanel.setAttribute('aria-hidden', 'true');
+    }
+
+    function openDeleteModal(event, jobId, jobName) {
+        event.stopPropagation();
+        pendingDeleteJobId = jobId;
+        pendingDeleteJobName = jobName;
+        deleteMessage.innerText = `"${jobName}" 작업의 결과 파일을 완전히 삭제할까요? 이 작업은 되돌릴 수 없습니다.`;
+        deleteModal.classList.add('open');
+        deleteModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeDeleteModal() {
+        pendingDeleteJobId = null;
+        pendingDeleteJobName = '';
+        deleteModal.classList.remove('open');
+        deleteModal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function confirmDeleteJob() {
+        if (!pendingDeleteJobId) return;
+        const jobId = pendingDeleteJobId;
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || '삭제에 실패했습니다.');
+            if (currentJob?.id === jobId) resetStudio();
+            if (localStorage.getItem('divimusic:lastJobId') === jobId) localStorage.removeItem('divimusic:lastJobId');
+            const layout = getLibraryLayout();
+            layout.items = layout.items
+                .map((item) => item.type === 'folder' ? { ...item, children: (item.children || []).filter((id) => id !== jobId) } : item)
+                .filter((item) => item.id !== jobId);
+            localStorage.setItem('divimusic:libraryLayout', JSON.stringify(layout));
+            closeDeleteModal();
+            refreshSidebarLibrary();
+            if (historyPanel.classList.contains('open')) openHistory();
+        } catch (error) {
+            deleteMessage.innerText = `삭제 실패: ${error.message}`;
+        }
+    }
+
+    async function loadHistoryJob(jobId) {
+        stopPlayback();
+        closeHistory();
+        processingView.style.display = 'flex';
+        uploadView.style.display = 'none';
+        studioView.style.display = 'none';
+        statusText.innerText = '보관함 작업을 불러오는 중입니다...';
+        progressBar.style.width = '100%';
+        progressPercent.innerText = 'READY';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || '작업을 찾을 수 없습니다.');
+            localStorage.setItem('divimusic:lastJobId', data.id);
+            await showStudio(data);
+            refreshSidebarLibrary();
+        } catch (error) {
+            showError('복원 실패', error.message);
+        }
+    }
+
+    async function restoreLastJob() {
+        const jobId = localStorage.getItem('divimusic:lastJobId');
+        if (!jobId) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            await showStudio(data);
+        } catch (error) {
+            console.warn('마지막 작업 복원 실패:', error);
+        }
+    }
+
+    function showError(title, message) {
+        processingView.style.display = 'none';
+        uploadView.style.display = 'flex';
+        studioView.style.display = 'none';
+        filePreviewCard.style.display = 'none';
+        document.getElementById('player-preview').style.display = 'block';
+        actionBtn.disabled = false;
+        actionBtn.innerText = '파일 선택';
+        actionBtn.style.background = 'transparent';
+        actionBtn.style.color = 'white';
+        actionBtn.onclick = () => document.getElementById('file-input').click();
+        alert(`${title}\n${message}`);
+    }
+
+    function resetToUploadScreen(clearLastJob = true) {
+        selectedFile = null;
+        fileInput.value = '';
+        if (clearLastJob) localStorage.removeItem('divimusic:lastJobId');
+        currentJob = clearLastJob ? null : currentJob;
+        currentLyricsText = clearLastJob ? '' : currentLyricsText;
+        currentLyricsSegments = clearLastJob ? [] : currentLyricsSegments;
+        activeLyricsIndex = -1;
+        clearInterval(progressTimer);
+        stopPlayback();
+        progressBar.style.width = '0%';
+        progressPercent.innerText = '0%';
+        studioView.style.display = 'none';
+        processingView.style.display = 'none';
+        uploadView.style.display = 'flex';
+        filePreviewCard.style.display = 'none';
+        document.getElementById('player-preview').style.display = 'block';
+        actionBtn.disabled = false;
+        actionBtn.innerText = '파일 선택';
+        actionBtn.style.background = 'transparent';
+        actionBtn.style.color = 'white';
+        actionBtn.onclick = () => document.getElementById('file-input').click();
+    }
+
+    function resetStudio() {
+        tracks = [];
+        resetToUploadScreen(true);
+    }
+
+    function formatTime(seconds) {
+        if (!Number.isFinite(seconds)) return '0:00';
+        const minutes = Math.floor(seconds / 60);
+        const rest = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${minutes}:${rest}`;
+    }
+
+    function formatDate(timestamp) {
+        if (!timestamp) return '방금 전';
+        return new Date(timestamp * 1000).toLocaleString('ko-KR', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    window.addEventListener('resize', () => {
+        if (tracks.length) drawAllWaveforms();
+    });
+
+    restoreLastJob();
+    refreshSidebarLibrary();
 </script>
-
 </body>
 </html>
