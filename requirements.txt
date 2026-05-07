@@ -1,0 +1,6 @@
+flask
+flask-cors
+demucs
+torchcodec
+mutagen
+faster-whisper
