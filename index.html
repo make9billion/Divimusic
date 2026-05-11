@@ -1486,7 +1486,9 @@
 
     function updatePlayhead(position) {
         const ratio = duration ? position / duration : 0;
-        playhead.style.left = `calc(18px + ${ratio * 100}%)`;
+        const timelinePaddingLeft = parseFloat(getComputedStyle(timeline).paddingLeft) || 0;
+        const waveWidth = waveStack.scrollWidth || waveStack.offsetWidth || 0;
+        playhead.style.left = `${timelinePaddingLeft + ratio * waveWidth}px`;
         playhead.style.setProperty('--playhead-height', `${waveStack.offsetHeight + 34}px`);
         scrubber.value = Math.floor(ratio * 1000);
         currentTimeLabel.innerText = formatTime(position);
