@@ -424,25 +424,37 @@
             position: sticky;
             top: 0;
             z-index: 4;
-            background:
-                linear-gradient(90deg, rgba(255,255,255,0.34) 1px, transparent 1px) 0 0 / 64px 24px,
-                linear-gradient(90deg, rgba(255,255,255,0.14) 1px, transparent 1px) 0 18px / 16px 10px,
-                linear-gradient(180deg, rgba(143,212,80,0.08), rgba(87,199,255,0.02)),
-                transparent;
+            min-width: 760px;
+            background: transparent;
             border-bottom: 0;
             box-shadow: none;
         }
 
-        .ruler::after {
-            content: "";
+        .ruler-tick {
             position: absolute;
-            left: 0;
-            right: 0;
             bottom: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), transparent 70%);
-            opacity: 0.75;
-            display: none;
+            width: 1px;
+            height: 15px;
+            background: rgba(255,255,255,0.18);
+            transform: translateX(-0.5px);
+        }
+
+        .ruler-tick.major {
+            width: 2px;
+            height: 22px;
+            background: rgba(255,255,255,0.38);
+            transform: translateX(-1px);
+        }
+
+        .ruler-label {
+            position: absolute;
+            top: 0;
+            color: rgba(242,245,247,0.5);
+            font-size: 0.68rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            transform: translateX(-50%);
+            pointer-events: none;
         }
 
         .playhead {
@@ -888,7 +900,7 @@
             <div class="studio-body">
                 <aside class="track-controls" id="track-controls"></aside>
                 <section class="timeline" id="timeline">
-                    <div class="ruler"></div>
+                    <div class="ruler" id="time-ruler"></div>
                     <div class="playhead" id="playhead"></div>
                     <div class="wave-stack" id="wave-stack"></div>
                 </section>
@@ -989,6 +1001,7 @@
     const fileNameDisplay = document.getElementById('file-name');
     const fileSizeDisplay = document.getElementById('file-size');
     const trackControls = document.getElementById('track-controls');
+    const timeRuler = document.getElementById('time-ruler');
     const waveStack = document.getElementById('wave-stack');
     const playhead = document.getElementById('playhead');
     const playIcon = document.getElementById('play-icon');
@@ -1183,6 +1196,7 @@
         renderTrackShells();
         await loadTrackBuffers();
         updateMixState();
+        renderTimeRuler();
         drawAllWaveforms();
         durationTimeLabel.innerText = formatTime(duration);
         updatePlayhead(0);
@@ -1277,6 +1291,32 @@
 
     function drawAllWaveforms() {
         tracks.forEach((track) => drawWaveform(track));
+    }
+
+    function renderTimeRuler() {
+        if (!timeRuler || !duration) {
+            if (timeRuler) timeRuler.innerHTML = '';
+            return;
+        }
+
+        const totalSeconds = Math.ceil(duration);
+        timeRuler.innerHTML = '';
+
+        for (let second = 0; second <= totalSeconds; second += 1) {
+            const left = `${(second / duration) * 100}%`;
+            const tick = document.createElement('span');
+            tick.className = `ruler-tick${second % 5 === 0 ? ' major' : ''}`;
+            tick.style.left = left;
+            timeRuler.appendChild(tick);
+
+            if (second % 10 === 0) {
+                const label = document.createElement('span');
+                label.className = 'ruler-label';
+                label.style.left = left;
+                label.textContent = formatTime(second);
+                timeRuler.appendChild(label);
+            }
+        }
     }
 
     function drawWaveform(track) {
@@ -2160,7 +2200,10 @@
     }
 
     window.addEventListener('resize', () => {
-        if (tracks.length) drawAllWaveforms();
+        if (tracks.length) {
+            renderTimeRuler();
+            drawAllWaveforms();
+        }
     });
 
     restoreLastJob();
