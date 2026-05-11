@@ -17,7 +17,7 @@
             --track-ink: #1f7580;
             --accent: #8fd450;
             --accent-2: #57c7ff;
-            --volume-color: #8fd450;
+            --volume-color: #c8ff00;
             --text: #f2f5f7;
             --dim: #9ba3ad;
             --muted: #5f6873;
@@ -368,41 +368,45 @@
         }
 
         .volume-row input::-webkit-slider-runnable-track {
-            height: 4px;
+            height: 1px;
             border-radius: 0;
             background: linear-gradient(90deg, var(--volume-color) 0 var(--volume-percent), rgba(255,255,255,0.22) var(--volume-percent) 100%);
         }
 
         .volume-row input::-webkit-slider-thumb {
-            width: 12px;
-            height: 14px;
-            margin-top: -5px;
-            border: 0;
+            width: 26px;
+            height: 13px;
+            margin-top: -6.5px;
+            border: 1px solid rgba(0, 0, 0, 0.82);
             border-radius: 2px;
-            background: var(--volume-color);
+            background:
+                repeating-linear-gradient(90deg, transparent 0 4px, rgba(107, 107, 107, 0.82) 4px 5px),
+                #474747;
             cursor: pointer;
             -webkit-appearance: none;
             appearance: none;
         }
 
         .volume-row input::-moz-range-track {
-            height: 4px;
+            height: 1px;
             border-radius: 0;
             background: rgba(255,255,255,0.22);
         }
 
         .volume-row input::-moz-range-progress {
-            height: 4px;
+            height: 1px;
             border-radius: 0;
             background: var(--volume-color);
         }
 
         .volume-row input::-moz-range-thumb {
-            width: 12px;
-            height: 14px;
-            border: 0;
+            width: 26px;
+            height: 13px;
+            border: 1px solid rgba(0, 0, 0, 0.82);
             border-radius: 2px;
-            background: var(--volume-color);
+            background:
+                repeating-linear-gradient(90deg, transparent 0 4px, rgba(107, 107, 107, 0.82) 4px 5px),
+                #474747;
             cursor: pointer;
         }
         .volume-value { text-align: right; font-variant-numeric: tabular-nums; }
