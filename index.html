@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DiviMusic Studio</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -18,6 +18,8 @@
             --accent: #8fd450;
             --accent-2: #57c7ff;
             --volume-color: #c8ff00;
+            --wave-played-color: rgba(200, 255, 0, 0.82);
+            --wave-remaining-color: rgba(96, 104, 114, 0.56);
             --text: #f2f5f7;
             --dim: #9ba3ad;
             --muted: #5f6873;
@@ -33,7 +35,7 @@
             margin: 0;
             padding: 0;
             height: 100%;
-            font-family: Inter, sans-serif;
+            font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
             overflow: hidden;
@@ -58,23 +60,23 @@
         .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
         .sidebar-header { height: 64px; padding: 0 14px 0 18px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
         .sidebar.collapsed .sidebar-header { justify-content: center; padding: 0; }
-        .logo-group { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .logo-group { display: flex; align-items: center; gap: 12px; min-width: 0; cursor: pointer; }
         .logo-box {
-            width: 32px;
-            height: 32px;
-            border: 2px solid var(--text);
+            width: 132px;
+            height: 28px;
+            border: 0;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.1rem;
+            justify-content: flex-start;
             flex-shrink: 0;
-            cursor: pointer;
+            overflow: hidden;
         }
 
-        .sidebar.collapsed .logo-box { border-color: var(--accent); color: var(--accent); }
-        .logo-text { font-weight: 800; font-size: 1.05rem; white-space: nowrap; overflow: hidden; transition: width 0.22s, opacity 0.18s; }
-        .sidebar.collapsed .logo-text { width: 0; opacity: 0; }
+        .logo-img { display: block; width: auto; max-width: 100%; height: 24px; object-fit: contain; }
+        .logo-img-collapsed { display: none; }
+        .sidebar.collapsed .logo-box { width: 34px; height: 34px; justify-content: center; }
+        .sidebar.collapsed .logo-img-expanded { display: none; }
+        .sidebar.collapsed .logo-img-collapsed { display: block; height: 28px; }
         .toggle-btn { width: 34px; height: 34px; cursor: pointer; color: var(--dim); padding: 0; background: transparent; display: grid; place-items: center; border-radius: 8px; flex-shrink: 0; }
         .toggle-btn:hover { background: #1c2028; color: var(--text); }
         .toggle-glyph { width: 16px; height: 13px; border: 1.5px solid currentColor; border-radius: 2px; position: relative; display: block; }
@@ -483,7 +485,7 @@
         .wave-track {
             height: 80px;
             border-radius: 8px;
-            background: color-mix(in srgb, var(--track-color), #ffffff 18%);
+            background: transparent;;
             overflow: hidden;
             position: relative;
             cursor: pointer;
@@ -743,7 +745,7 @@
 
         @media (max-width: 900px) {
             .sidebar { width: var(--sidebar-collapsed-width); }
-            .sidebar .logo-text, .sidebar-footer .user-info { display: none; }
+            .sidebar-footer .user-info { display: none; }
             .sidebar .section-title { opacity: 0; }
             .sidebar .toggle-btn { display: none; }
             .sidebar .menu-item { justify-content: center; padding: 0; gap: 0; }
@@ -780,9 +782,11 @@
 <div class="app-container">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="logo-group">
-                <div class="logo-box" onclick="expandSidebar()">D</div>
-                <span class="logo-text">DiviMusic</span>
+            <div class="logo-group" onclick="expandSidebar()">
+                <div class="logo-box">
+                    <img class="logo-img logo-img-expanded" src="assets/logo-expanded.png" alt="Bandbox">
+                    <img class="logo-img logo-img-collapsed" src="assets/logo-collapsed.png" alt="Bandbox">
+                </div>
             </div>
             <button class="toggle-btn" onclick="toggleSidebar()" title="사이드바 접기"><span class="toggle-glyph"></span></button>
         </div>
@@ -979,13 +983,13 @@
     const IS_STATIC_FRONTEND = window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io');
     const API_BASE_URL = savedApiUrl || (IS_STATIC_FRONTEND ? 'http://127.0.0.1:8000' : '');
     const stemMeta = {
-        no_vocals: { label: 'Instrumental', color: '#b58cff', icon: 'fa-music', order: 1 },
-        vocals: { label: 'Vocals', color: '#8fd450', icon: 'fa-microphone', order: 0 },
-        drums: { label: 'Drums', color: '#57c7ff', icon: 'fa-drum', order: 1 },
-        bass: { label: 'Bass', color: '#f1bf54', icon: 'fa-guitar', order: 2 },
-        guitar: { label: 'Guitar', color: '#ef7a83', icon: 'fa-guitar', order: 3 },
-        piano: { label: 'Piano', color: '#b58cff', icon: 'fa-music', order: 4 },
-        other: { label: 'Other', color: '#ef7a83', icon: 'fa-layer-group', order: 5 }
+        no_vocals: { label: 'Instrumental', color: '#d7fe57', icon: 'fa-music', order: 1 },
+        vocals: { label: 'Vocals', color: '#91fe43', icon: 'fa-microphone', order: 0 },
+        drums: { label: 'Drums', color: '#f4fec7', icon: 'fa-drum', order: 1 },
+        bass: { label: 'Bass', color: '#d7fe57', icon: 'fa-guitar', order: 2 },
+        guitar: { label: 'Guitar', color: '#d7fe57', icon: 'fa-guitar', order: 3 },
+        piano: { label: 'Piano', color: '#d7fe57', icon: 'fa-music', order: 4 },
+        other: { label: 'Other', color: '#d7fe57', icon: 'fa-layer-group', order: 5 }
     };
 
     const sidebar = document.getElementById('sidebar');
@@ -1042,7 +1046,7 @@
     let rafId = null;
     let playbackRate = 1;
     let pitchSemitones = 0;
-    const PLAYHEAD_VISUAL_DELAY_SECONDS = 1;
+    const PLAYHEAD_VISUAL_DELAY_SECONDS = 0.5;
     let currentJob = null;
     let currentLyricsText = '';
     let currentLyricsSegments = [];
@@ -1217,7 +1221,8 @@
             solo: false,
             buffer: null,
             gain: null,
-            canvas: null
+            canvas: null,
+            waveBars: null
         };
     }
 
@@ -1290,8 +1295,9 @@
         await Promise.all(requests);
     }
 
-    function drawAllWaveforms() {
-        tracks.forEach((track) => drawWaveform(track));
+    function drawAllWaveforms(playedRatio = null) {
+        const ratio = playedRatio ?? (duration ? Math.min(Math.max(getCurrentPosition() - PLAYHEAD_VISUAL_DELAY_SECONDS, 0), duration) / duration : 0);
+        tracks.forEach((track) => drawWaveform(track, ratio));
     }
 
     function renderTimeRuler() {
@@ -1320,13 +1326,18 @@
         }
     }
 
-    function drawWaveform(track) {
+    function drawWaveform(track, playedRatio = 0) {
         const canvas = track.canvas;
         const parent = canvas.parentElement;
         const rect = parent.getBoundingClientRect();
         const scale = window.devicePixelRatio || 1;
-        canvas.width = Math.max(760, Math.floor(rect.width)) * scale;
-        canvas.height = Math.floor(rect.height) * scale;
+        const nextWidth = Math.max(760, Math.floor(rect.width)) * scale;
+        const nextHeight = Math.floor(rect.height) * scale;
+        if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+            canvas.width = nextWidth;
+            canvas.height = nextHeight;
+            track.waveBars = null;
+        }
         canvas.style.width = '100%';
         canvas.style.height = '100%';
 
@@ -1334,37 +1345,71 @@
         const width = canvas.width;
         const height = canvas.height;
         ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = getComputedStyle(parent).getPropertyValue('--track-color').trim();
-        ctx.globalAlpha = 0.22;
-        ctx.fillRect(0, 0, width, height);
-        ctx.globalAlpha = 1;
+        //배경색
+        //ctx.fillStyle = getComputedStyle(parent).getPropertyValue('--track-color').trim();
+        //ctx.globalAlpha = 0.22;
+        //ctx.fillRect(0, 0, width, height);
+        //ctx.globalAlpha = 1;
 
         if (!track.buffer) return;
         parent.querySelector('.wave-loading')?.remove();
+        if (track.waveBars) {
+            renderWaveformBars(track, playedRatio);
+            return;
+        }
         const data = track.buffer.getChannelData(0);
-        const step = Math.max(1, Math.floor(data.length / width));
         const mid = height / 2;
-        ctx.strokeStyle = 'rgba(8, 47, 56, 0.78)';
-        ctx.lineWidth = Math.max(1, scale);
-        ctx.beginPath();
-        for (let x = 0; x < width; x++) {
+        const barWidth = Math.max(2, Math.floor(1 * scale));
+        const barGap = Math.max(1, Math.floor(1 * scale));
+        const barPitch = barWidth + barGap;
+        const barCount = Math.ceil(width / barPitch);
+        const step = Math.max(1, Math.floor(data.length / barCount));
+        const minBarHeight = Math.max(2, 2 * scale);
+
+        track.waveBars = [];
+        for (let bar = 0; bar < barCount; bar++) {
             let min = 1;
             let max = -1;
-            const start = x * step;
+            const start = bar * step;
             for (let i = 0; i < step && start + i < data.length; i++) {
                 const value = data[start + i];
                 if (value < min) min = value;
                 if (value > max) max = value;
             }
-            ctx.moveTo(x, mid + min * mid * 0.78);
-            ctx.lineTo(x, mid + max * mid * 0.78);
+            const amplitude = Math.max(Math.abs(min), Math.abs(max));
+            const barHeight = Math.max(minBarHeight, amplitude * height * 0.78);
+            const x = bar * barPitch;
+            const y = mid - barHeight / 2;
+            track.waveBars.push({ x, y, width: barWidth, height: barHeight });
         }
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,255,0.32)';
-        ctx.beginPath();
-        ctx.moveTo(0, mid);
-        ctx.lineTo(width, mid);
-        ctx.stroke();
+        renderWaveformBars(track, playedRatio);
+
+        //ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+        //ctx.beginPath();
+        //ctx.moveTo(0, mid);
+        //ctx.lineTo(width, mid);
+        //ctx.stroke();
+    }
+
+    function renderWaveformBars(track, playedRatio) {
+        const canvas = track.canvas;
+        if (!canvas || !track.waveBars) return;
+
+        const ctx = canvas.getContext('2d');
+        const rootStyle = getComputedStyle(document.documentElement);
+        const playedColor = rootStyle.getPropertyValue('--wave-played-color').trim() || 'rgba(200,255,0,0.82)';
+        const remainingColor = rootStyle.getPropertyValue('--wave-remaining-color').trim() || 'rgba(96,104,114,0.56)';
+        const progressX = canvas.width * Math.min(Math.max(playedRatio, 0), 1);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        track.waveBars.forEach((bar) => {
+            ctx.fillStyle = bar.x + bar.width <= progressX ? playedColor : remainingColor;
+            ctx.fillRect(bar.x, bar.y, bar.width, bar.height);
+        });
+    }
+
+    function updateWaveformProgress(playedRatio) {
+        tracks.forEach((track) => renderWaveformBars(track, playedRatio));
     }
 
     function renderDownloadMenu(files, data = {}) {
@@ -1493,6 +1538,7 @@
         const waveWidth = waveStack.scrollWidth || waveStack.offsetWidth || 0;
         playhead.style.left = `${timelinePaddingLeft + visualRatio * waveWidth}px`;
         playhead.style.setProperty('--playhead-height', `${waveStack.offsetHeight + 34}px`);
+        updateWaveformProgress(visualRatio);
         scrubber.value = Math.floor(ratio * 1000);
         currentTimeLabel.innerText = formatTime(position);
         durationTimeLabel.innerText = formatTime(duration);
