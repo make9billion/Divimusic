@@ -1042,6 +1042,7 @@
     let rafId = null;
     let playbackRate = 1;
     let pitchSemitones = 0;
+    const PLAYHEAD_VISUAL_DELAY_SECONDS = 1;
     let currentJob = null;
     let currentLyricsText = '';
     let currentLyricsSegments = [];
@@ -1486,9 +1487,11 @@
 
     function updatePlayhead(position) {
         const ratio = duration ? position / duration : 0;
+        const visualPosition = Math.min(Math.max(position - PLAYHEAD_VISUAL_DELAY_SECONDS, 0), duration);
+        const visualRatio = duration ? visualPosition / duration : 0;
         const timelinePaddingLeft = parseFloat(getComputedStyle(timeline).paddingLeft) || 0;
         const waveWidth = waveStack.scrollWidth || waveStack.offsetWidth || 0;
-        playhead.style.left = `${timelinePaddingLeft + ratio * waveWidth}px`;
+        playhead.style.left = `${timelinePaddingLeft + visualRatio * waveWidth}px`;
         playhead.style.setProperty('--playhead-height', `${waveStack.offsetHeight + 34}px`);
         scrubber.value = Math.floor(ratio * 1000);
         currentTimeLabel.innerText = formatTime(position);
