@@ -9,7 +9,7 @@
     <style>
         :root {
             --bg: #090a0d;
-            --studio-bg: rgba(0, 0, 0, 0.70);
+            --studio-bg: rgb(6, 6, 6);
             --panel: #15171d;
             --panel-soft: #1d2028;
             --panel-strong: #242934;
@@ -17,6 +17,7 @@
             --track-ink: #1f7580;
             --accent: #8fd450;
             --accent-2: #57c7ff;
+            --volume-color: #8fd450;
             --text: #f2f5f7;
             --dim: #9ba3ad;
             --muted: #5f6873;
@@ -339,7 +340,6 @@
 
         .track-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .track-name { display: flex; align-items: center; gap: 9px; min-width: 0; font-weight: 800; font-size: 0.9rem; }
-        .track-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--track-color); flex-shrink: 0; }
         .track-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .track-toggles { display: flex; gap: 5px; flex-shrink: 0; }
         .tiny-btn {
@@ -355,8 +355,56 @@
 
         .tiny-btn.active.mute { color: #12090b; background: var(--danger); }
         .tiny-btn.active.solo { color: #061007; background: var(--accent); }
-        .volume-row { display: grid; grid-template-columns: 18px 1fr 38px; align-items: center; gap: 8px; color: var(--dim); font-size: 0.72rem; }
-        .volume-row input { width: 100%; accent-color: var(--track-color); }
+        .volume-row { display: grid; grid-template-columns: 1fr 38px; align-items: center; gap: 8px; color: var(--dim); font-size: 0.72rem; }
+        .volume-row input {
+            --volume-percent: 83.333%;
+            width: 100%;
+            height: 14px;
+            margin: 0;
+            background: transparent;
+            accent-color: var(--volume-color);
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .volume-row input::-webkit-slider-runnable-track {
+            height: 4px;
+            border-radius: 0;
+            background: linear-gradient(90deg, var(--volume-color) 0 var(--volume-percent), rgba(255,255,255,0.22) var(--volume-percent) 100%);
+        }
+
+        .volume-row input::-webkit-slider-thumb {
+            width: 12px;
+            height: 14px;
+            margin-top: -5px;
+            border: 0;
+            border-radius: 2px;
+            background: var(--volume-color);
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .volume-row input::-moz-range-track {
+            height: 4px;
+            border-radius: 0;
+            background: rgba(255,255,255,0.22);
+        }
+
+        .volume-row input::-moz-range-progress {
+            height: 4px;
+            border-radius: 0;
+            background: var(--volume-color);
+        }
+
+        .volume-row input::-moz-range-thumb {
+            width: 12px;
+            height: 14px;
+            border: 0;
+            border-radius: 2px;
+            background: var(--volume-color);
+            cursor: pointer;
+        }
         .volume-value { text-align: right; font-variant-numeric: tabular-nums; }
 
         .timeline {
@@ -1187,15 +1235,14 @@
             control.style.setProperty('--track-color', track.color);
             control.innerHTML = `
                 <div class="track-line">
-                    <div class="track-name"><span class="track-dot"></span><i class="fas ${track.icon}"></i><span>${track.label}</span></div>
+                    <div class="track-name"><i class="fas ${track.icon}"></i><span>${track.label}</span></div>
                     <div class="track-toggles">
                         <button class="tiny-btn mute" id="${track.id}-mute" onclick="toggleMute(${index})">M</button>
                         <button class="tiny-btn solo" id="${track.id}-solo" onclick="toggleSolo(${index})">S</button>
                     </div>
                 </div>
                 <div class="volume-row">
-                    <i class="fas fa-volume-low"></i>
-                    <input type="range" min="0" max="120" value="100" oninput="setTrackVolume(${index}, this.value)">
+                    <input type="range" min="0" max="120" value="100" style="--volume-percent: 83.333%" oninput="setTrackVolume(${index}, this)">
                     <span class="volume-value" id="${track.id}-volume">100%</span>
                 </div>
             `;
@@ -1438,8 +1485,10 @@
         if (isPlaying && audioContext) startedAt = audioContext.currentTime - position / getEffectivePlaybackRate();
     }
 
-    function setTrackVolume(index, value) {
-        tracks[index].volume = Number(value) / 100;
+    function setTrackVolume(index, control) {
+        const value = Number(control?.value ?? control);
+        tracks[index].volume = value / 100;
+        control?.style?.setProperty('--volume-percent', `${Math.min(100, Math.max(0, (value / 120) * 100))}%`);
         document.getElementById(`${tracks[index].id}-volume`).innerText = `${value}%`;
         updateMixState();
     }
