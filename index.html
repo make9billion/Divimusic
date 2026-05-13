@@ -287,6 +287,13 @@
         .song-subtitle { color: var(--dim); font-size: 0.78rem; margin-top: 3px; }
         .top-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
         .meter-pill { color: var(--dim); }
+        .control-icon {
+            width: 17px;
+            height: 17px;
+            object-fit: contain;
+            filter: invert(1);
+            opacity: 0.95;
+        }
         .download-menu, .control-menu { position: relative; }
         .download-popover, .control-popover {
             position: absolute;
@@ -871,7 +878,7 @@
                 </div>
                 <div class="top-actions">
                     <div class="control-menu" id="speed-menu">
-                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('speed-menu')"><i class="fas fa-gauge-high"></i> <span id="speed-label">163</span></button>
+                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('speed-menu')"><img class="control-icon" src="assets/icons/bpm.png" alt=""> <span id="speed-label">163</span></button>
                         <div class="control-popover">
                             <div class="popover-title">BPM</div>
                             <div class="stepper">
@@ -883,7 +890,7 @@
                         </div>
                     </div>
                     <div class="control-menu" id="pitch-menu">
-                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('pitch-menu')"><i class="fas fa-sliders"></i> <span id="pitch-label">Am</span></button>
+                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('pitch-menu')"><img class="control-icon" src="assets/icons/key.png" alt=""> <span id="pitch-label">Am</span></button>
                         <div class="control-popover">
                             <div class="popover-title">KEY</div>
                             <div class="stepper">
