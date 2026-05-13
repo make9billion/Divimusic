@@ -879,7 +879,7 @@
                                 <div class="stepper-value" id="speed-value">163</div>
                                 <button onclick="changeBpm(1)">+</button>
                             </div>
-                            <button class="popover-reset" onclick="setBpm(BASE_BPM)">RESET</button>
+                            <button class="popover-reset" onclick="setBpm(baseBpm)">RESET</button>
                         </div>
                     </div>
                     <div class="control-menu" id="pitch-menu">
@@ -887,9 +887,9 @@
                         <div class="control-popover">
                             <div class="popover-title">KEY</div>
                             <div class="stepper">
-                                <button onclick="changePitch(-0.5)">−</button>
+                                <button onclick="changePitch(-1)">−</button>
                                 <div class="stepper-value" id="pitch-value">Am</div>
-                                <button onclick="changePitch(0.5)">+</button>
+                                <button onclick="changePitch(1)">+</button>
                             </div>
                             <button class="popover-reset" onclick="setPitch(0)">RESET</button>
                         </div>
@@ -1046,9 +1046,11 @@
     let rafId = null;
     let playbackRate = 1;
     let pitchSemitones = 0;
-    const BASE_BPM = 163;
-    let currentBpm = BASE_BPM;
-    const BASE_KEY_INDEX = 9;
+    const DEFAULT_BPM = 163;
+    let baseBpm = DEFAULT_BPM;
+    let currentBpm = DEFAULT_BPM;
+    let baseKeyIndex = 9;
+    let baseKeyMode = 'minor';
     const KEY_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const PLAYHEAD_VISUAL_DELAY_SECONDS = 0.5;
     let currentJob = null;
@@ -1187,7 +1189,11 @@
         downloadList.innerHTML = '';
         pausedAt = 0;
         duration = 0;
-        currentBpm = BASE_BPM;
+        const analysis = data.analysis || {};
+        baseBpm = Number(analysis.bpm) || DEFAULT_BPM;
+        currentBpm = baseBpm;
+        baseKeyIndex = Number.isInteger(Number(analysis.keyIndex)) ? Number(analysis.keyIndex) : 9;
+        baseKeyMode = analysis.keyMode === 'major' ? 'major' : 'minor';
         playbackRate = 1;
         pitchSemitones = 0;
         speedLabel.innerText = `${currentBpm}`;
@@ -1570,7 +1576,7 @@
     function setBpm(value) {
         const position = getCurrentPosition();
         currentBpm = Math.round(value);
-        playbackRate = Number((currentBpm / BASE_BPM).toFixed(4));
+        playbackRate = Number((currentBpm / baseBpm).toFixed(4));
         const label = `${currentBpm}`;
         speedLabel.innerText = label;
         speedValue.innerText = label;
@@ -1593,12 +1599,8 @@
     }
 
     function getPitchLabel(semitones) {
-        const rounded = Math.round(semitones);
-        if (Math.abs(semitones - rounded) > 0.001) {
-            return `${semitones > 0 ? '+' : ''}${semitones} st`;
-        }
-        const keyIndex = (BASE_KEY_INDEX + rounded + KEY_NAMES.length * 10) % KEY_NAMES.length;
-        return `${KEY_NAMES[keyIndex]}m`;
+        const keyIndex = (baseKeyIndex + Math.round(semitones) + KEY_NAMES.length * 10) % KEY_NAMES.length;
+        return `${KEY_NAMES[keyIndex]}${baseKeyMode === 'minor' ? 'm' : ''}`;
     }
 
     function setTrackVolume(index, control) {

@@ -4,3 +4,4 @@ demucs
 torchcodec
 mutagen
 faster-whisper
+librosa

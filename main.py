@@ -18,6 +18,13 @@ except ImportError:
     MutagenFile = None
 
 try:
+    import librosa
+    import numpy as np
+except ImportError:
+    librosa = None
+    np = None
+
+try:
     from faster_whisper import WhisperModel
 except ImportError:
     WhisperModel = None
@@ -165,7 +172,63 @@ def extract_album_cover(file_path):
         return None
 
 
-def build_job_payload(job_id, original_name, track_folder, files, cover_data_url, mode):
+def analyze_audio_metadata(file_path):
+    default_analysis = {
+        "bpm": 163,
+        "key": "Am",
+        "keyRoot": "A",
+        "keyMode": "minor",
+        "keyIndex": 9,
+        "confidence": 0
+    }
+    if librosa is None or np is None:
+        return default_analysis
+
+    try:
+        y, sr = librosa.load(str(file_path), sr=22050, mono=True, duration=120)
+        if y.size == 0:
+            return default_analysis
+
+        tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+        bpm = int(round(float(np.asarray(tempo).reshape(-1)[0])))
+        if bpm < 60:
+            bpm *= 2
+        elif bpm > 220:
+            bpm = int(round(bpm / 2))
+
+        chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
+        chroma_mean = np.maximum(chroma.mean(axis=1), 1e-9)
+        chroma_mean = chroma_mean / chroma_mean.sum()
+
+        major_profile = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+        minor_profile = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+        key_names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+        scores = []
+        for index in range(12):
+            major_score = float(np.corrcoef(chroma_mean, np.roll(major_profile, index))[0, 1])
+            minor_score = float(np.corrcoef(chroma_mean, np.roll(minor_profile, index))[0, 1])
+            scores.append((major_score, index, "major"))
+            scores.append((minor_score, index, "minor"))
+
+        confidence, key_index, key_mode = max(scores, key=lambda item: item[0])
+        key_root = key_names[key_index]
+        key_label = f"{key_root}{'m' if key_mode == 'minor' else ''}"
+
+        return {
+            "bpm": bpm or default_analysis["bpm"],
+            "key": key_label,
+            "keyRoot": key_root,
+            "keyMode": key_mode,
+            "keyIndex": key_index,
+            "confidence": round(confidence, 4)
+        }
+    except Exception as e:
+        print(f"BPM/Key 분석 실패: {e}")
+        return default_analysis
+
+
+def build_job_payload(job_id, original_name, track_folder, files, cover_data_url, mode, analysis=None):
     relative_folder = track_folder.relative_to(OUTPUT_FOLDER).as_posix()
     return {
         "id": job_id,
@@ -179,6 +242,7 @@ def build_job_payload(job_id, original_name, track_folder, files, cover_data_url
         "createdAt": time.time(),
         "files": files,
         "cover": cover_data_url,
+        "analysis": analysis or {},
         "lyrics": None,
         "zipUrl": f"/jobs/{job_id}/zip"
     }
@@ -377,6 +441,7 @@ def upload_file():
     file_path = UPLOAD_FOLDER / safe_filename
     file.save(file_path)
     cover_data_url = extract_album_cover(file_path)
+    audio_analysis = analyze_audio_metadata(file_path)
     print(f"파일 업로드 완료: {file_path}")
 
     # 2. AI 분리 작업 실행 (Demucs 예시)
@@ -399,7 +464,7 @@ def upload_file():
         job_id = Path(safe_filename).stem
         track_folder = OUTPUT_FOLDER / mode_config["output_root"] / job_id
         files = collect_output_files(track_folder)
-        job = build_job_payload(job_id, file.filename, track_folder, files, cover_data_url, mode)
+        job = build_job_payload(job_id, file.filename, track_folder, files, cover_data_url, mode, audio_analysis)
         save_job(job)
         file_path.unlink(missing_ok=True)
 
