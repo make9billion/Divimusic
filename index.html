@@ -360,10 +360,18 @@
             gap: 8px;
         }
 
-        .track-control-tools .control-menu { min-width: 0; }
+        .track-control-tools .control-menu { min-width: 0; position: static; }
         .track-control-tools .meter-pill { width: 100%; height: 34px; padding: 0 10px; justify-content: center; }
-        .track-control-tools .control-popover { left: 0; right: auto; top: 42px; }
-        .track-control-tools .control-menu:last-child .control-popover { left: auto; right: 0; }
+        .track-control-tools .control-popover {
+            left: 0;
+            right: 0;
+            top: 42px;
+            width: 100%;
+            padding: 12px;
+        }
+        .track-control-tools .stepper { grid-template-columns: 52px 1fr 52px; gap: 8px; }
+        .track-control-tools .stepper button,
+        .track-control-tools .stepper-value { height: 48px; }
 
         .track-control-row {
             height: 80px;
