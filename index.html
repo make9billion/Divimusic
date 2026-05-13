@@ -287,6 +287,17 @@
         .song-subtitle { color: var(--dim); font-size: 0.78rem; margin-top: 3px; }
         .top-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
         .meter-pill { color: var(--dim); }
+        .control-menu.adjusted .meter-pill {
+            background: var(--text);
+            border-color: var(--text);
+            color: #050608;
+        }
+
+        .control-menu.adjusted .control-icon {
+            filter: none;
+            opacity: 1;
+        }
+
         .control-icon {
             width: 17px;
             height: 17px;
@@ -336,7 +347,23 @@
             display: grid;
             align-content: start;
             gap: 8px;
+            position: relative;
         }
+
+        .track-control-tools {
+            position: absolute;
+            top: 18px;
+            left: 14px;
+            right: 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .track-control-tools .control-menu { min-width: 0; }
+        .track-control-tools .meter-pill { width: 100%; height: 34px; padding: 0 10px; justify-content: center; }
+        .track-control-tools .control-popover { left: 0; right: auto; top: 42px; }
+        .track-control-tools .control-menu:last-child .control-popover { left: auto; right: 0; }
 
         .track-control-row {
             height: 80px;
@@ -778,6 +805,7 @@
             .studio-view { min-height: 100vh; height: auto; grid-template-rows: auto auto auto; }
             .studio-body { grid-template-columns: 1fr; }
             .track-controls { border-right: 0; border-bottom: 0; }
+            .track-control-tools { position: static; margin-bottom: 10px; }
             .track-control-row { height: auto; padding: 12px 0; }
             .timeline { min-height: 420px; }
             .lyrics-dock { grid-column: 1; }
@@ -869,7 +897,6 @@
         <section class="studio-view" id="studio-view">
             <nav class="studio-topbar">
                 <div class="song-head">
-                    <button class="icon-btn" onclick="resetStudio()" title="새 파일"><i class="fas fa-arrow-left"></i></button>
                     <div class="cover" id="album-cover"><i class="fas fa-music"></i></div>
                     <div class="song-copy">
                         <h2 class="song-title" id="studio-title">분리된 프로젝트</h2>
@@ -877,6 +904,16 @@
                     </div>
                 </div>
                 <div class="top-actions">
+                    <div class="download-menu" id="download-menu">
+                        <button class="pill-btn" onclick="toggleDownloadMenu()"><i class="fas fa-download"></i> 다운로드</button>
+                        <div class="download-popover" id="download-list"></div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="studio-body">
+                <aside class="track-controls">
+                    <div class="track-control-tools">
                     <div class="control-menu" id="speed-menu">
                         <button class="pill-btn meter-pill" onclick="toggleControlMenu('speed-menu')"><img class="control-icon" src="assets/icons/bpm.png" alt=""> <span id="speed-label">163</span></button>
                         <div class="control-popover">
@@ -901,15 +938,9 @@
                             <button class="popover-reset" onclick="setPitch(0)">RESET</button>
                         </div>
                     </div>
-                    <div class="download-menu" id="download-menu">
-                        <button class="pill-btn" onclick="toggleDownloadMenu()"><i class="fas fa-download"></i> 다운로드</button>
-                        <div class="download-popover" id="download-list"></div>
                     </div>
-                </div>
-            </nav>
-
-            <div class="studio-body">
-                <aside class="track-controls" id="track-controls"></aside>
+                    <div id="track-controls"></div>
+                </aside>
                 <section class="timeline" id="timeline">
                     <div class="ruler" id="time-ruler"></div>
                     <div class="playhead" id="playhead"></div>
@@ -1207,10 +1238,11 @@
         speedValue.innerText = `${currentBpm}`;
         pitchLabel.innerText = getPitchLabel(pitchSemitones);
         pitchValue.innerText = getPitchLabel(pitchSemitones);
+        updateControlAdjustedStates();
 
         const files = sortStemFiles((data.files || []).filter((file) => isPlayableAudio(file.name)));
         studioTitle.innerText = data.originalName || selectedFile?.name || '분리된 프로젝트';
-        studioSubtitle.innerText = `${data.modeLabel || '트랙 분리'} · ${files.length}개 트랙 준비됨`;
+        studioSubtitle.innerText = getSeparationLabel(data.mode);
         renderCover(data.cover);
         renderLyrics(data.lyrics);
 
@@ -1253,6 +1285,15 @@
     function getStemKey(filename) {
         const lowerName = filename.toLowerCase();
         return Object.keys(stemMeta).find((name) => lowerName.includes(name)) || 'other';
+    }
+
+    function getSeparationLabel(mode) {
+        const labels = {
+            vocals: '보컬 분리',
+            '4stems': '4트랙 분리',
+            '6stems': '6트랙 분리'
+        };
+        return labels[mode] || '트랙 분리';
     }
 
     function sortStemFiles(files) {
@@ -1588,6 +1629,7 @@
         speedLabel.innerText = label;
         speedValue.innerText = label;
         activeSources.forEach((source) => source.playbackRate.value = playbackRate);
+        updateControlAdjustedStates();
         if (isPlaying && audioContext) startedAt = audioContext.currentTime - position / getEffectivePlaybackRate();
     }
 
@@ -1602,12 +1644,18 @@
         pitchLabel.innerText = label;
         pitchValue.innerText = label;
         activeSources.forEach((source) => source.detune.value = pitchSemitones * 100);
+        updateControlAdjustedStates();
         if (isPlaying && audioContext) startedAt = audioContext.currentTime - position / getEffectivePlaybackRate();
     }
 
     function getPitchLabel(semitones) {
         const keyIndex = (baseKeyIndex + Math.round(semitones) + KEY_NAMES.length * 10) % KEY_NAMES.length;
         return `${KEY_NAMES[keyIndex]}${baseKeyMode === 'minor' ? 'm' : ''}`;
+    }
+
+    function updateControlAdjustedStates() {
+        document.getElementById('speed-menu')?.classList.toggle('adjusted', currentBpm !== baseBpm);
+        document.getElementById('pitch-menu')?.classList.toggle('adjusted', pitchSemitones !== 0);
     }
 
     function setTrackVolume(index, control) {
