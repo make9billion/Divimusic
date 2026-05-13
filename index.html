@@ -871,25 +871,25 @@
                 </div>
                 <div class="top-actions">
                     <div class="control-menu" id="speed-menu">
-                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('speed-menu')"><i class="fas fa-gauge-high"></i> <span id="speed-label">1x</span></button>
+                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('speed-menu')"><i class="fas fa-gauge-high"></i> <span id="speed-label">163</span></button>
                         <div class="control-popover">
-                            <div class="popover-title">SPEED</div>
+                            <div class="popover-title">BPM</div>
                             <div class="stepper">
-                                <button onclick="changeSpeed(-0.25)">−</button>
-                                <div class="stepper-value" id="speed-value">1x</div>
-                                <button onclick="changeSpeed(0.25)">+</button>
+                                <button onclick="changeBpm(-1)">−</button>
+                                <div class="stepper-value" id="speed-value">163</div>
+                                <button onclick="changeBpm(1)">+</button>
                             </div>
-                            <button class="popover-reset" onclick="setSpeed(1)">RESET</button>
+                            <button class="popover-reset" onclick="setBpm(BASE_BPM)">RESET</button>
                         </div>
                     </div>
                     <div class="control-menu" id="pitch-menu">
-                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('pitch-menu')"><i class="fas fa-sliders"></i> <span id="pitch-label">0 st</span></button>
+                        <button class="pill-btn meter-pill" onclick="toggleControlMenu('pitch-menu')"><i class="fas fa-sliders"></i> <span id="pitch-label">Am</span></button>
                         <div class="control-popover">
-                            <div class="popover-title">PITCH</div>
+                            <div class="popover-title">KEY</div>
                             <div class="stepper">
-                                <button onclick="changePitch(-1)">−</button>
-                                <div class="stepper-value" id="pitch-value">0 st</div>
-                                <button onclick="changePitch(1)">+</button>
+                                <button onclick="changePitch(-0.5)">−</button>
+                                <div class="stepper-value" id="pitch-value">Am</div>
+                                <button onclick="changePitch(0.5)">+</button>
                             </div>
                             <button class="popover-reset" onclick="setPitch(0)">RESET</button>
                         </div>
@@ -1046,6 +1046,10 @@
     let rafId = null;
     let playbackRate = 1;
     let pitchSemitones = 0;
+    const BASE_BPM = 163;
+    let currentBpm = BASE_BPM;
+    const BASE_KEY_INDEX = 9;
+    const KEY_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const PLAYHEAD_VISUAL_DELAY_SECONDS = 0.5;
     let currentJob = null;
     let currentLyricsText = '';
@@ -1183,6 +1187,13 @@
         downloadList.innerHTML = '';
         pausedAt = 0;
         duration = 0;
+        currentBpm = BASE_BPM;
+        playbackRate = 1;
+        pitchSemitones = 0;
+        speedLabel.innerText = `${currentBpm}`;
+        speedValue.innerText = `${currentBpm}`;
+        pitchLabel.innerText = getPitchLabel(pitchSemitones);
+        pitchValue.innerText = getPitchLabel(pitchSemitones);
 
         const files = sortStemFiles((data.files || []).filter((file) => isPlayableAudio(file.name)));
         studioTitle.innerText = data.originalName || selectedFile?.name || '분리된 프로젝트';
@@ -1552,14 +1563,15 @@
         downloadMenu.classList.remove('open');
     }
 
-    function changeSpeed(delta) {
-        setSpeed(Math.min(2, Math.max(0.5, playbackRate + delta)));
+    function changeBpm(delta) {
+        setBpm(Math.min(260, Math.max(40, currentBpm + delta)));
     }
 
-    function setSpeed(value) {
+    function setBpm(value) {
         const position = getCurrentPosition();
-        playbackRate = Number(value.toFixed(2));
-        const label = `${Number.isInteger(playbackRate) ? playbackRate.toFixed(0) : playbackRate}x`;
+        currentBpm = Math.round(value);
+        playbackRate = Number((currentBpm / BASE_BPM).toFixed(4));
+        const label = `${currentBpm}`;
         speedLabel.innerText = label;
         speedValue.innerText = label;
         activeSources.forEach((source) => source.playbackRate.value = playbackRate);
@@ -1572,12 +1584,21 @@
 
     function setPitch(value) {
         const position = getCurrentPosition();
-        pitchSemitones = value;
-        const label = `${pitchSemitones > 0 ? '+' : ''}${pitchSemitones} st`;
+        pitchSemitones = Number(value.toFixed(1));
+        const label = getPitchLabel(pitchSemitones);
         pitchLabel.innerText = label;
         pitchValue.innerText = label;
         activeSources.forEach((source) => source.detune.value = pitchSemitones * 100);
         if (isPlaying && audioContext) startedAt = audioContext.currentTime - position / getEffectivePlaybackRate();
+    }
+
+    function getPitchLabel(semitones) {
+        const rounded = Math.round(semitones);
+        if (Math.abs(semitones - rounded) > 0.001) {
+            return `${semitones > 0 ? '+' : ''}${semitones} st`;
+        }
+        const keyIndex = (BASE_KEY_INDEX + rounded + KEY_NAMES.length * 10) % KEY_NAMES.length;
+        return `${KEY_NAMES[keyIndex]}m`;
     }
 
     function setTrackVolume(index, control) {
